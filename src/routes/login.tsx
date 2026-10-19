@@ -104,8 +104,8 @@ function Login() {
 
         <h1 className="font-display text-4xl sm:text-5xl">Welcome back</h1>
         <p className="mt-2 max-w-md text-sm text-muted">
-          Sign in to the atelier. For now this screen is a preview — orders are confirmed on
-          WhatsApp.
+          Sign in to keep your cart and orders in one place. Bookings are still confirmed
+          personally on WhatsApp.
         </p>
 
         {status.google || status.broker ? (
