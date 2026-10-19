@@ -79,7 +79,7 @@ function Login() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden min-h-screen bg-[#1A1714] lg:block">
+      <div className="relative hidden min-h-screen bg-ink lg:block">
         <img
           src="/images/hero-woman.jpg"
           alt=""

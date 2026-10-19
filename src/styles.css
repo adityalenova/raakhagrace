@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #faf8f5;
-  --color-paper: #f3efe8;
-  --color-surface: #ffffff;
-  --color-fg: #1a1714;
-  --color-muted: #6b645c;
-  --color-subtle: #9a9288;
-  --color-line: #e6e0d6;
-  --color-accent: #8a7355;
-  --color-accent-fg: #faf8f5;
-  --color-ink: #111111;
-  --color-ink-fg: #f4efe6;
-  --color-ink-muted: #b7aea2;
+  --color-bg: #fff3ec;
+  --color-paper: #fbe1d2;
+  --color-surface: #fffbf8;
+  --color-fg: #5b3623;
+  --color-muted: #8b6752;
+  --color-subtle: #b9937c;
+  --color-line: #f4d8c7;
+  --color-accent: #a8532a;
+  --color-accent-fg: #fff3ec;
+  --color-ink: #3c2317;
+  --color-ink-fg: #fbe1d2;
+  --color-ink-muted: #c9a086;
   --color-danger: #9b3d3d;
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
@@ -25,7 +25,7 @@
 @layer base {
   /* critical-bg */
   html {
-    background-color: #faf8f5;
+    background-color: #fff3ec;
     color-scheme: only light;
   }
   html {
@@ -39,7 +39,7 @@
   }
   body {
     margin: 0;
-    background: #faf8f5 !important;
+    background: #fff3ec !important;
     color: var(--color-fg);
     font-family: var(--font-sans);
     overflow-x: hidden;
@@ -115,7 +115,9 @@
 .menu-arrow {
   font-size: 0.95rem;
   opacity: 0.35;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 .menu-link:hover .menu-arrow {
   opacity: 1;
@@ -260,10 +262,13 @@
   }
 }
 
-
 @keyframes hero-soft-zoom {
-  0% { transform: scale(1.04); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .hero-soft-zoom {
   animation: hero-soft-zoom 12s ease-out forwards;

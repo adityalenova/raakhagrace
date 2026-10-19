@@ -21,14 +21,14 @@ const inr = (rupees: number): string =>
   `₹${rupees.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
 function enquiryHtml(rows: { label: string; value: string }[]): string {
-  return `<div style="font-family:ui-serif,Georgia,serif;color:#1A1714">
+  return `<div style="font-family:ui-serif,Georgia,serif;color:#5b3623">
   <h2 style="margin:0 0 4px;font-weight:400;letter-spacing:.08em">RAAKHA GRACE</h2>
-  <p style="margin:0 0 20px;color:#7a6f66;font-size:13px">New booking enquiry</p>
+  <p style="margin:0 0 20px;color:#8b6752;font-size:13px">New booking enquiry</p>
   <table role="presentation" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-size:14px">
     ${rows
       .map(
         (r) =>
-          `<tr><td style="border-bottom:1px solid #eee;color:#7a6f66;vertical-align:top">${escapeHtml(r.label)}</td><td style="border-bottom:1px solid #eee">${escapeHtml(r.value)}</td></tr>`,
+          `<tr><td style="border-bottom:1px solid #f4d8c7;color:#8b6752;vertical-align:top">${escapeHtml(r.label)}</td><td style="border-bottom:1px solid #f4d8c7">${escapeHtml(r.value)}</td></tr>`,
       )
       .join("")}
   </table>

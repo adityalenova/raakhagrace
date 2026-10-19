@@ -11,8 +11,11 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "description", content: "Raakha Grace — handmade jewellery, light enough for every occasion." },
-      { name: "theme-color", content: "#FAF8F5" },
+      {
+        name: "description",
+        content: "Raakha Grace — handmade jewellery, light enough for every occasion.",
+      },
+      { name: "theme-color", content: "#FFF3EC" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Raakha Grace" },
@@ -32,11 +35,16 @@ export const Route = createRootRoute({
     ],
   }),
   component: () => (
-    <html lang="en" className="antialiased" style={{ backgroundColor: "#FAF8F5" }} suppressHydrationWarning>
+    <html
+      lang="en"
+      className="antialiased"
+      style={{ backgroundColor: "#FFF3EC" }}
+      suppressHydrationWarning
+    >
       <head>
         <HeadContent />
       </head>
-      <body className="bg-bg text-fg" style={{ backgroundColor: "#FAF8F5", margin: 0 }}>
+      <body className="bg-bg text-fg" style={{ backgroundColor: "#FFF3EC", margin: 0 }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

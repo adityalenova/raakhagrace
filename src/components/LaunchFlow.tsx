@@ -82,11 +82,11 @@ export function LaunchFlow() {
         >
           <X className="h-5 w-5" />
         </button>
-        <LotusMark className="mx-auto h-10 w-10 text-[#1A1714]" />
+        <LotusMark className="mx-auto h-10 w-10 text-fg" />
         <h2 className="mt-4 font-display text-3xl">Welcome to Raakha Grace</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Handmade jewellery, light on the skin and meant for every occasion.
-          Enjoy complimentary gift wrapping on your first order.
+          Handmade jewellery, light on the skin and meant for every occasion. Enjoy complimentary
+          gift wrapping on your first order.
         </p>
         <button
           type="button"

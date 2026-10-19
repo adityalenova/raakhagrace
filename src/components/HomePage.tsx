@@ -14,32 +14,39 @@ export function HomePage() {
 
   return (
     <main>
-      <section className="grid lg:grid-cols-2">
-        <div className="relative min-h-[70vh] overflow-hidden bg-[#FAF8F5]">
+      <section className="relative w-full overflow-hidden bg-ink">
+        <div className="aspect-video w-full">
           <video
-            className="absolute inset-0 h-full w-full object-cover"
+            className="h-full w-full object-cover"
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
-            poster="/images/hero-woman.jpg"
           >
-            <source src="/videos/hero.mp4" type="video/mp4" />
+            <source src="/videos/hero-jewellery.mp4" type="video/mp4" />
           </video>
-        </div>
-        <div className="relative min-h-[50vh] overflow-hidden bg-ink">
-          <img src="/images/hero-pendant.jpg" alt="Geometry drop pendant" className="h-full w-full object-cover" />
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <h2 className="text-center font-display text-4xl">Shop By Categories</h2>
-        <p className="mt-2 text-center text-sm text-muted">Find your perfect sparkle across every category</p>
+        <p className="mt-2 text-center text-sm text-muted">
+          Find your perfect sparkle across every category
+        </p>
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {CATEGORIES.filter((c) => c.size === "lg").map((c) => (
-            <Link key={c.slug} to="/jewellery" search={{ category: c.slug }} className="group relative overflow-hidden rounded-xl">
-              <img src={c.image} alt={c.label} className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-80" />
+            <Link
+              key={c.slug}
+              to="/jewellery"
+              search={{ category: c.slug }}
+              className="group relative overflow-hidden rounded-xl"
+            >
+              <img
+                src={c.image}
+                alt={c.label}
+                className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-80"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-fg/50 to-transparent" />
               <div className="absolute bottom-5 left-5 text-bg">
                 <p className="font-display text-3xl">{c.label}</p>
@@ -50,8 +57,17 @@ export function HomePage() {
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {CATEGORIES.filter((c) => c.size === "sm").map((c) => (
-            <Link key={c.slug} to="/jewellery" search={{ category: c.slug }} className="group relative overflow-hidden rounded-xl">
-              <img src={c.image} alt={c.label} className="h-48 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-56" />
+            <Link
+              key={c.slug}
+              to="/jewellery"
+              search={{ category: c.slug }}
+              className="group relative overflow-hidden rounded-xl"
+            >
+              <img
+                src={c.image}
+                alt={c.label}
+                className="h-48 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-56"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-fg/45 to-transparent" />
               <p className="absolute bottom-4 left-4 font-display text-xl text-bg">{c.label}</p>
             </Link>
@@ -60,7 +76,15 @@ export function HomePage() {
       </section>
 
       <section className="relative h-[70vh] min-h-[420px] overflow-hidden bg-ink">
-        <video className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/images/hero-pendant.jpg">
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/images/hero-pendant.jpg"
+        >
           <source src="/videos/cover.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-fg/25" />
@@ -83,8 +107,12 @@ export function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <h2 className="text-center font-display text-4xl">Extraordinary Gifts for Every Occasion</h2>
-        <p className="mt-2 text-center text-sm text-muted">Unique gifts crafted for every celebration.</p>
+        <h2 className="text-center font-display text-4xl">
+          Extraordinary Gifts for Every Occasion
+        </h2>
+        <p className="mt-2 text-center text-sm text-muted">
+          Unique gifts crafted for every celebration.
+        </p>
         <div className="relative mt-10">
           <button
             type="button"
@@ -123,12 +151,22 @@ export function HomePage() {
       <section className="bg-bg py-16">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
           <div className="overflow-hidden rounded-xl">
-            <video className="aspect-[4/3] w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/images/hero-pendant.jpg">
+            <video
+              className="aspect-[4/3] w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster="/images/hero-pendant.jpg"
+            >
               <source src="/videos/cover.mp4" type="video/mp4" />
             </video>
           </div>
           <div>
-            <p className="text-[0.7rem] tracking-[0.3em] text-accent uppercase">The Raakha Grace Promise</p>
+            <p className="text-[0.7rem] tracking-[0.3em] text-accent uppercase">
+              The Raakha Grace Promise
+            </p>
             <h2 className="mt-3 font-display text-4xl">Made to be lived in</h2>
             <ul className="mt-8 grid gap-6 sm:grid-cols-2">
               {[
@@ -153,7 +191,9 @@ export function HomePage() {
           {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
             <blockquote key={i} className="w-[min(80vw,360px)] shrink-0 rounded-xl bg-surface p-6">
               <p className="font-display text-xl italic leading-snug">“{t.quote}”</p>
-              <footer className="mt-4 text-xs tracking-[0.16em] text-muted uppercase">{t.name}</footer>
+              <footer className="mt-4 text-xs tracking-[0.16em] text-muted uppercase">
+                {t.name}
+              </footer>
             </blockquote>
           ))}
         </div>
@@ -163,8 +203,20 @@ export function HomePage() {
 }
 
 const TESTIMONIALS = [
-  { name: "Ananya, Hyderabad", quote: "The mangalsutra is so light I forget I am wearing it — until someone asks." },
-  { name: "Meera, Bengaluru", quote: "Gifted the triad pendant for a promotion. It felt personal, not ceremonial." },
-  { name: "Kabir, Pune", quote: "Packaging, finish, and the way it sits on the skin. Quiet luxury, actually." },
-  { name: "Sana, Delhi", quote: "Wore the swirl hoops from breakfast to a wedding. Still comfortable." },
+  {
+    name: "Ananya, Hyderabad",
+    quote: "The mangalsutra is so light I forget I am wearing it — until someone asks.",
+  },
+  {
+    name: "Meera, Bengaluru",
+    quote: "Gifted the triad pendant for a promotion. It felt personal, not ceremonial.",
+  },
+  {
+    name: "Kabir, Pune",
+    quote: "Packaging, finish, and the way it sits on the skin. Quiet luxury, actually.",
+  },
+  {
+    name: "Sana, Delhi",
+    quote: "Wore the swirl hoops from breakfast to a wedding. Still comfortable.",
+  },
 ];

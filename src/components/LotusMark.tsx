@@ -7,7 +7,7 @@ export function LotusMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 64 64"
-      className={cn("lotus-mark overflow-visible text-[#1A1714]", className)}
+      className={cn("lotus-mark overflow-visible text-fg", className)}
       fill="currentColor"
       aria-hidden="true"
     >
