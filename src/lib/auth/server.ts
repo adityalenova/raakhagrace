@@ -38,6 +38,7 @@ import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { resendConfigured, sendEmail } from "../email/sender.server";
+import { sendVerificationMail, sendWelcomeMail } from "../email/brand.server";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
@@ -173,6 +174,9 @@ const database = databaseUrl
 /** Session token cookie name — also read by the live-preview popup completion page. */
 export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
+/** How long a "confirm your account" link stays valid, in hours. */
+const VERIFICATION_HOURS = 72;
+
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
 const grokOAuthPlugin =
@@ -280,6 +284,50 @@ export const auth = betterAuth({
         },
       }
     : {}),
+
+  // Email verification for email/password sign-ups.
+  //
+  // `sendOnSignUp` mints the token and hands us the `/verify-email` URL; the
+  // template is the house layout in `@/lib/email/brand`. We deliberately do NOT
+  // set `emailAndPassword.requireEmailVerification`: an unverified address must
+  // not lock a customer out of an account they just made, because delivery to a
+  // brand-new mailbox depends on the verified sender domain being live. The
+  // dashboard nudges instead, and offers a resend.
+  emailVerification: {
+    sendOnSignUp: true,
+    expiresIn: VERIFICATION_HOURS * 60 * 60,
+    sendVerificationEmail: async ({ user, url }) => {
+      if (!resendConfigured()) {
+        console.log(`[auth] Resend is not configured — verification link for ${user.email}: ${url}`);
+        return;
+      }
+      await sendVerificationMail({
+        to: user.email,
+        name: user.name,
+        email: user.email,
+        url,
+        hours: VERIFICATION_HOURS,
+      });
+    },
+  },
+
+  // One welcome mail per new account — email/password or Google, since both
+  // create a `user` row. Fire-and-forget: a bounced greeting must never fail a
+  // sign-up.
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          if (!user.email) return;
+          if (!resendConfigured()) {
+            console.log(`[auth] Resend is not configured — skipping the welcome mail for ${user.email}`);
+            return;
+          }
+          await sendWelcomeMail({ to: user.email, name: user.name ?? "" });
+        },
+      },
+    },
+  },
 
   // Cache the session in the short-lived signed `session_data` cookie so reads
   // (incl. the client's `/get-session`) skip the DB — this shrinks the "loading"

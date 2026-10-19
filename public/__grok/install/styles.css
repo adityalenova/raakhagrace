@@ -40,7 +40,12 @@ html {
 
 body {
   min-height: 100dvh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    sans-serif;
   font-size: var(--text-body);
   font-weight: var(--weight-regular);
   font-optical-sizing: auto;
@@ -67,10 +72,7 @@ img {
   min-height: 100svh;
   background: var(--bg);
   overflow-x: hidden;
-  padding:
-    calc(20px + env(safe-area-inset-top))
-    32px
-    calc(24px + env(safe-area-inset-bottom));
+  padding: calc(20px + env(safe-area-inset-top)) 32px calc(24px + env(safe-area-inset-bottom));
 }
 
 .powered {
@@ -165,7 +167,12 @@ h1 {
   align-self: stretch;
   padding: 0;
   color: var(--title);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    sans-serif;
   font-size: var(--text-title);
   font-weight: var(--weight-semibold);
   font-optical-sizing: auto;
@@ -311,10 +318,7 @@ html.device-tablet .page {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding:
-    calc(24px + env(safe-area-inset-top))
-    24px
-    calc(24px + env(safe-area-inset-bottom));
+  padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
 }
 
 html.device-tablet .powered {

@@ -258,8 +258,12 @@ function CheckoutPage() {
                 disabled={enquiry.state === "sending"}
                 className="h-12 w-full rounded-md border border-fg text-sm tracking-[0.14em] uppercase transition hover:bg-fg hover:text-bg disabled:opacity-60"
               >
-                {enquiry.state === "sending" ? "Sending…" : "Also send by email"}
+                {enquiry.state === "sending" ? "Sending…" : "Email me the product details"}
               </button>
+              <p className="text-center text-[0.7rem] leading-relaxed text-subtle">
+                Bookings are confirmed on WhatsApp only. The email route sends the piece and your
+                details to the atelier as an enquiry — it does not hold stock.
+              </p>
               {enquiry.note && (
                 <p
                   role="status"

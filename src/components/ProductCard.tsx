@@ -7,7 +7,11 @@ export function ProductCard({ product }: { product: Product }) {
   const add = useCart((s) => s.add);
   return (
     <article className="group">
-      <Link to="/product/$id" params={{ id: product.id }} className="block overflow-hidden rounded-lg bg-paper">
+      <Link
+        to="/product/$id"
+        params={{ id: product.id }}
+        className="block overflow-hidden rounded-lg bg-paper"
+      >
         <img
           src={product.image}
           alt={product.name}
@@ -16,7 +20,11 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <Link to="/product/$id" params={{ id: product.id }} className="font-display text-lg leading-tight">
+          <Link
+            to="/product/$id"
+            params={{ id: product.id }}
+            className="font-display text-lg leading-tight"
+          >
             {product.name}
           </Link>
           <p className="mt-1 text-sm tabular-nums text-muted">

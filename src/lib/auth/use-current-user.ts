@@ -9,6 +9,12 @@ export type AppUser = {
   profileImageUrl: string | null;
   isDevFallback: boolean;
   isGuest?: boolean;
+  /**
+   * Whether the address on this account has been confirmed by clicking the link
+   * we mail on sign-up. Google-asserted addresses arrive already verified; a
+   * guest session has no address to verify, so it stays `undefined`.
+   */
+  emailVerified?: boolean;
 };
 
 export type CurrentUserState = {
@@ -54,6 +60,7 @@ export function useCurrentUserState(): CurrentUserState {
         profileImageUrl: data.user.image ?? null,
         isDevFallback: false,
         isGuest: false,
+        emailVerified: data.user.emailVerified ?? false,
       }
     : null;
 

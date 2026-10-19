@@ -275,3 +275,36 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     },
   });
 }
+
+/**
+ * Re-mail the branded "confirm your account" link for a signed-in address.
+ *
+ * `/send-verification-email` is a core Better Auth endpoint with no typed client
+ * helper in 1.6, so it is posted directly. Same-origin plus the session cookie
+ * covers the deployed app; the preview's bearer token is attached by hand so the
+ * one code path works in both.
+ */
+export async function resendVerificationEmail(
+  email: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (typeof window === "undefined") return { ok: false, error: "Client-only call" };
+  const token = getBearerToken();
+  try {
+    const res = await fetch("/api/auth/send-verification-email", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ email, callbackURL: "/dashboard" }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: { message?: string } };
+      return { ok: false, error: body.message ?? body.error?.message ?? `Request failed (${res.status})` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not reach the server" };
+  }
+}

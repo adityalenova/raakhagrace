@@ -29,12 +29,15 @@ export const useCart = create<CartState>()(
         if (i >= 0) items[i] = { ...items[i], qty: Math.min(20, items[i].qty + qty) };
         else items.push({ productId, qty });
         set({ items });
-        void setCartItem({ data: { productId, qty: items.find((x) => x.productId === productId)?.qty ?? qty } }).catch(
-          () => {},
-        );
+        void setCartItem({
+          data: { productId, qty: items.find((x) => x.productId === productId)?.qty ?? qty },
+        }).catch(() => {});
       },
       setQty: (productId, qty) => {
-        const items = qty <= 0 ? get().items.filter((x) => x.productId !== productId) : get().items.map((x) => (x.productId === productId ? { ...x, qty } : x));
+        const items =
+          qty <= 0
+            ? get().items.filter((x) => x.productId !== productId)
+            : get().items.map((x) => (x.productId === productId ? { ...x, qty } : x));
         set({ items });
         void setCartItem({ data: { productId, qty } }).catch(() => {});
       },

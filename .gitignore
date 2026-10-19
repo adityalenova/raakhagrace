@@ -8,3 +8,8 @@ dist/
 .DS_Store
 *.log
 .tanstack/
+.vercel
+.env*
+
+# platform skill symlinks, not project files
+.grok/skills/

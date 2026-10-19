@@ -5,30 +5,16 @@ import { createPortal } from "react-dom";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useCart } from "@/lib/cart-store";
 import { useProductList } from "@/lib/catalog-store";
+import { NAV_MENUS, type NavMenu } from "@/lib/nav";
 import { LotusMark } from "./LotusMark";
-
-const SHOP = [
-  { to: "/jewellery" as const, label: "Jewellery" },
-  { to: "/ornaments" as const, label: "Ornaments" },
-  { to: "/gifts" as const, label: "Gifts" },
-];
-
-const COLLECTIONS = [
-  { to: "/specials" as const, label: "Specials" },
-  { to: "/daily-wear" as const, label: "Daily Wear" },
-];
-
-const HOUSE = [
-  { to: "/about" as const, label: "About us" },
-  { to: "/blog" as const, label: "Blog" },
-  { to: "/community" as const, label: "Community" },
-];
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  /** Which top-level mega panel is open on desktop (null = closed). */
+  const [menu, setMenu] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -61,7 +47,18 @@ export function Header() {
   useEffect(() => {
     setOpen(false);
     setExpanded(null);
+    setMenu(null);
   }, [pathname]);
+
+  // Escape closes the mega panel, and focus returns to the button that opened it.
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menu]);
 
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
 
@@ -85,6 +82,7 @@ export function Header() {
         aria-label="Search"
         onClick={() => {
           setOpen(false);
+          setMenu(null);
           setSearchOpen((v) => !v);
         }}
       >
@@ -118,7 +116,9 @@ export function Header() {
     </div>
   );
 
-  const menu =
+  const mega = NAV_MENUS.find((m) => m.label === menu) ?? null;
+
+  const mobileMenu =
     open && mounted
       ? createPortal(
           <div className="fixed inset-0 z-[60] flex flex-col bg-surface xl:hidden">
@@ -138,48 +138,25 @@ export function Header() {
               {account}
             </div>
             <nav className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 pt-2">
-              {SHOP.map((n) => (
-                <Link
-                  key={n.label}
-                  to={n.to}
-                  className="block border-b border-line/70 py-4 font-display text-[1.65rem] tracking-[0.14em] uppercase"
-                  onClick={() => setOpen(false)}
+              {NAV_MENUS.map((m) => (
+                <Accordion
+                  key={m.label}
+                  label={m.label}
+                  open={expanded === m.label}
+                  onToggle={() =>
+                    setExpanded((v) => (v === m.label ? null : m.label))
+                  }
                 >
-                  {n.label}
-                </Link>
+                  <TileRail tiles={m.tiles} onNavigate={() => setOpen(false)} />
+                  <Link
+                    to={m.to}
+                    className="mt-4 inline-block text-[0.65rem] tracking-[0.18em] text-accent uppercase underline underline-offset-4"
+                    onClick={() => setOpen(false)}
+                  >
+                    View all {m.label}
+                  </Link>
+                </Accordion>
               ))}
-              <Accordion
-                label="Collections"
-                open={expanded === "collections"}
-                onToggle={() => setExpanded((v) => (v === "collections" ? null : "collections"))}
-              >
-                {COLLECTIONS.map((n) => (
-                  <Link
-                    key={n.label}
-                    to={n.to}
-                    className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
-                    onClick={() => setOpen(false)}
-                  >
-                    {n.label}
-                  </Link>
-                ))}
-              </Accordion>
-              <Accordion
-                label="The House"
-                open={expanded === "house"}
-                onToggle={() => setExpanded((v) => (v === "house" ? null : "house"))}
-              >
-                {HOUSE.map((n) => (
-                  <Link
-                    key={n.label}
-                    to={n.to}
-                    className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
-                    onClick={() => setOpen(false)}
-                  >
-                    {n.label}
-                  </Link>
-                ))}
-              </Accordion>
             </nav>
           </div>,
           document.body,
@@ -191,7 +168,7 @@ export function Header() {
       <p className="bg-ink px-3 py-2 text-center text-[0.62rem] leading-snug tracking-[0.22em] text-ink-fg uppercase">
         Handmade with heart · Free shipping across India
       </p>
-      <div className="border-b border-line">
+      <div className="border-b border-line" onMouseLeave={() => setMenu(null)}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.5rem] sm:px-6">
           <button
             type="button"
@@ -204,30 +181,86 @@ export function Header() {
 
           {brand}
 
-          <nav className="hidden items-center gap-6 text-[0.65rem] font-medium tracking-[0.18em] uppercase text-fg xl:flex">
-            {SHOP.map((n) => (
-              <Link
-                key={n.label}
-                to={n.to}
-                className={isActive(n.to) ? "text-accent" : "hover:text-accent"}
-              >
-                {n.label}
-              </Link>
-            ))}
-            <DesktopGroup
-              label="Collections"
-              items={COLLECTIONS}
-              active={COLLECTIONS.some((i) => isActive(i.to))}
-            />
-            <DesktopGroup
-              label="The House"
-              items={HOUSE}
-              active={HOUSE.some((i) => isActive(i.to))}
-            />
+          <nav className="hidden items-center gap-7 text-[0.65rem] font-medium tracking-[0.18em] uppercase text-fg xl:flex">
+            {NAV_MENUS.map((n) => {
+              const shown = isActive(n.to) || menu === n.label;
+              return (
+                <button
+                  key={n.label}
+                  type="button"
+                  aria-expanded={menu === n.label}
+                  aria-controls={menu === n.label ? "mega-panel" : undefined}
+                  className={`relative inline-flex items-center gap-1 py-2 transition ${
+                    shown ? "text-accent" : "hover:text-accent"
+                  }`}
+                  onClick={() => setMenu((v) => (v === n.label ? null : n.label))}
+                  // Once a panel is open, sliding across the row previews the others.
+                  onMouseEnter={() => menu && setMenu(n.label)}
+                >
+                  {n.label}
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${menu === n.label ? "rotate-180" : ""}`}
+                  />
+                  <span
+                    className={`absolute inset-x-0 -bottom-px h-[2px] origin-left bg-accent transition-transform duration-200 ${
+                      shown ? "scale-x-100" : "scale-x-0"
+                    }`}
+                  />
+                </button>
+              );
+            })}
           </nav>
 
           {account}
         </div>
+
+        {mega && (
+          <div
+            id="mega-panel"
+            className="absolute inset-x-0 top-full hidden border-b border-line bg-surface shadow-[0_24px_48px_-28px_rgba(91,54,35,0.35)] xl:block"
+          >
+            <div className="mx-auto flex max-w-7xl gap-10 px-6 py-10">
+              <div className="w-56 shrink-0">
+                <p className="font-display text-2xl text-fg">{mega.label}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{mega.blurb}</p>
+                <Link
+                  to={mega.to}
+                  className="mt-5 inline-block text-[0.65rem] tracking-[0.18em] text-accent uppercase underline underline-offset-4"
+                  onClick={() => setMenu(null)}
+                >
+                  View all
+                </Link>
+              </div>
+              {/* One row, tiles share the space up to a cap — a fixed width left
+                  the sixth tile stranded on its own line. */}
+              <div className="flex flex-1 gap-4">
+                {mega.tiles.map((t) => (
+                  <Link
+                    key={`${t.label}-${t.search ? JSON.stringify(t.search) : ""}`}
+                    to={t.to}
+                    // TanStack types the search param per route; the panel data is
+                    // authored against the same filters each catalog page reads.
+                    search={t.search as never}
+                    className="group min-w-0 max-w-[200px] flex-1"
+                    onClick={() => setMenu(null)}
+                  >
+                    <span className="block overflow-hidden rounded-md bg-paper">
+                      <img
+                        src={t.image}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                      />
+                    </span>
+                    <span className="mt-3 block text-center text-[0.62rem] leading-snug tracking-[0.16em] text-fg uppercase group-hover:text-accent">
+                      {t.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {searchOpen && (
@@ -263,7 +296,7 @@ export function Header() {
           </div>
         </div>
       )}
-      {menu}
+      {mobileMenu}
     </header>
   );
 }
@@ -290,41 +323,31 @@ function Accordion({
         {label}
         <ChevronDown className={`h-5 w-5 text-muted transition ${open ? "rotate-180" : ""}`} />
       </button>
-      {open ? <div className="pb-4">{children}</div> : null}
+      {open ? <div className="pb-5">{children}</div> : null}
     </div>
   );
 }
 
-function DesktopGroup({
-  label,
-  items,
-  active,
-}: {
-  label: string;
-  items: { to: "/specials" | "/daily-wear" | "/about" | "/blog" | "/community"; label: string }[];
-  active: boolean;
-}) {
+/** The same tiles as the desktop panel, as a swipeable rail on mobile. */
+function TileRail({ tiles, onNavigate }: { tiles: NavMenu["tiles"]; onNavigate: () => void }) {
   return (
-    <div className="group relative">
-      <span
-        className={`inline-flex cursor-default items-center gap-1 ${active ? "text-accent" : "hover:text-accent"}`}
-      >
-        {label}
-        <ChevronDown className="h-3 w-3" />
-      </span>
-      <div className="invisible absolute left-1/2 top-full z-50 min-w-44 -translate-x-1/2 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
-        <div className="rounded-md border border-line bg-surface py-2 shadow-lg">
-          {items.map((n) => (
-            <Link
-              key={n.label}
-              to={n.to}
-              className="block px-4 py-2 text-[0.65rem] tracking-[0.16em] uppercase hover:text-accent"
-            >
-              {n.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+    <div className="-mx-1 flex gap-3 overflow-x-auto pb-1">
+      {tiles.map((t) => (
+        <Link
+          key={`${t.label}-${t.search ? JSON.stringify(t.search) : ""}`}
+          to={t.to}
+          search={t.search as never}
+          className="w-[108px] shrink-0"
+          onClick={onNavigate}
+        >
+          <span className="block overflow-hidden rounded-md bg-paper">
+            <img src={t.image} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
+          </span>
+          <span className="mt-2 block text-center text-[0.58rem] leading-snug tracking-[0.14em] text-muted uppercase">
+            {t.label}
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }

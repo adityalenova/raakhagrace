@@ -1,12 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  AlertTriangle,
+  Boxes,
+  CircleDollarSign,
+  PencilLine,
+  Search,
+  Undo2,
+} from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { LotusMark } from "@/components/LotusMark";
 import { SiteShell } from "@/components/SiteShell";
 import { adminStatus } from "@/lib/auth-status";
 import { signOut } from "@/lib/auth/client";
 import { useCatalog, useProductList } from "@/lib/catalog-store";
-import type { Product } from "@/lib/products";
-import { formatInr } from "@/lib/utils";
+import { CATEGORIES, type Product } from "@/lib/products";
+import { cn, formatInr } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
   // Decided on the server from the session cookie, so the gate cannot be
@@ -15,13 +23,49 @@ export const Route = createFileRoute("/admin")({
   component: Page,
 });
 
+const COLLECTION_TABS = [
+  { key: "all", label: "Everything" },
+  { key: "jewellery", label: "Jewellery" },
+  { key: "ornaments", label: "Ornaments" },
+  { key: "gifts", label: "Gifts" },
+] as const;
+
 function Page() {
   const status = Route.useLoaderData();
   const [editing, setEditing] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<(typeof COLLECTION_TABS)[number]["key"]>("all");
   const list = useProductList();
+  const overrides = useCatalog((s) => s.overrides);
   const upsert = useCatalog((s) => s.upsert);
   const reset = useCatalog((s) => s.reset);
   const resetAll = useCatalog((s) => s.resetAll);
+
+  const stats = useMemo(() => {
+    const low = list.filter((p) => p.stock > 0 && p.stock <= 5);
+    const out = list.filter((p) => p.stock === 0);
+    const value = list.reduce((sum, p) => sum + p.price * p.stock, 0);
+    return {
+      pieces: list.length,
+      edited: Object.keys(overrides).length,
+      low: low.length,
+      out: out.length,
+      value,
+    };
+  }, [list, overrides]);
+
+  const shown = useMemo(() => {
+    const t = query.trim().toLowerCase();
+    return list.filter((p) => {
+      if (tab !== "all" && p.collection !== tab) return false;
+      if (!t) return true;
+      return (
+        p.name.toLowerCase().includes(t) ||
+        p.sku.toLowerCase().includes(t) ||
+        p.category.includes(t)
+      );
+    });
+  }, [list, query, tab]);
 
   if (!status.allowed) {
     return (
@@ -51,62 +95,212 @@ function Page() {
 
   return (
     <SiteShell>
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[0.65rem] tracking-[0.2em] text-subtle uppercase">Atelier</p>
-            <h1 className="font-display text-4xl">Product admin</h1>
+      <main className="pb-20">
+        <section className="relative overflow-hidden bg-ink">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 px-4 py-10 sm:px-6 sm:py-12">
+            <div>
+              <p className="text-[0.65rem] tracking-[0.3em] text-ink-muted uppercase">
+                Atelier control
+              </p>
+              <h1 className="mt-3 font-display text-4xl text-ink-fg sm:text-5xl">
+                Product dashboard
+              </h1>
+              <p className="mt-2 text-sm text-ink-muted">
+                {status.email ?? "Signed in"} · edits save to this browser
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => resetAll()}
+                className="flex h-11 items-center gap-2 rounded-md border border-ink-muted/40 px-4 text-[0.68rem] tracking-[0.16em] text-ink-fg uppercase transition hover:border-ink-muted"
+              >
+                <Undo2 className="h-4 w-4" /> Reset to seed
+              </button>
+              <button
+                type="button"
+                onClick={() => void signOut("/")}
+                className="h-11 rounded-md bg-ink-fg px-4 text-[0.68rem] tracking-[0.16em] text-ink uppercase"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button type="button" className="text-sm underline" onClick={() => resetAll()}>
-              Reset all to seed
-            </button>
-            <button type="button" className="text-sm underline" onClick={() => void signOut("/")}>
-              Sign out admin
-            </button>
-          </div>
-        </div>
+          <LotusMark className="pointer-events-none absolute -right-8 -top-10 h-48 opacity-[0.07]" />
+        </section>
 
-        {current ? (
-          <Editor
-            product={current}
-            onCancel={() => setEditing(null)}
-            onSave={(patch) => {
-              upsert(current.id, patch);
-              setEditing(null);
-            }}
-            onReset={() => {
-              reset(current.id);
-              setEditing(null);
-            }}
-          />
-        ) : (
-          <ul className="mt-10 divide-y divide-line">
-            {list.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-4 py-4">
-                <img src={p.image} alt="" className="h-16 w-16 rounded object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-xl">{p.name}</p>
-                  <p className="text-sm text-muted">
-                    {p.sku} · {formatInr(p.price)} · stock {p.stock}
-                  </p>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <section className="-mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat icon={Boxes} label="Pieces listed" value={String(stats.pieces)} />
+            <Stat
+              icon={PencilLine}
+              label="Edited from seed"
+              value={String(stats.edited)}
+              tone={stats.edited ? "warn" : "ok"}
+            />
+            <Stat
+              icon={AlertTriangle}
+              label="Low or out of stock"
+              value={`${stats.low + stats.out}`}
+              hint={stats.out ? `${stats.out} sold out` : "nothing sold out"}
+              tone={stats.low + stats.out ? "warn" : "ok"}
+            />
+            <Stat
+              icon={CircleDollarSign}
+              label="Stock value"
+              value={formatInr(stats.value)}
+              hint="at listed prices"
+            />
+          </section>
+
+          {current ? (
+            <Editor
+              product={current}
+              onCancel={() => setEditing(null)}
+              onSave={(patch) => {
+                upsert(current.id, patch);
+                setEditing(null);
+              }}
+              onReset={() => {
+                reset(current.id);
+                setEditing(null);
+              }}
+            />
+          ) : (
+            <>
+              <div className="mt-10 flex flex-wrap items-center gap-3">
+                <label className="relative flex-1 min-w-56">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by name, SKU or category"
+                    className="h-12 w-full rounded-md border border-line bg-surface pl-11 pr-4 text-sm outline-none focus:border-accent"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {COLLECTION_TABS.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setTab(t.key)}
+                      className={cn(
+                        "h-10 rounded-full border px-4 text-[0.66rem] tracking-[0.14em] uppercase transition",
+                        tab === t.key
+                          ? "border-fg bg-fg text-bg"
+                          : "border-line bg-surface hover:border-accent",
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
-                <Link to="/product/$id" params={{ id: p.id }} className="text-sm underline">
-                  View
-                </Link>
-                <button
-                  type="button"
-                  className="rounded-full border border-line px-4 py-2 text-[0.7rem] tracking-[0.14em] uppercase"
-                  onClick={() => setEditing(p.id)}
-                >
-                  Edit
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              </div>
+
+              {shown.length === 0 ? (
+                <p className="mt-10 rounded-xl border border-dashed border-line px-6 py-12 text-center text-sm text-muted">
+                  No pieces match that search.
+                </p>
+              ) : (
+                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {shown.map((p) => {
+                    const edited = Boolean(overrides[p.id]);
+                    const label = CATEGORIES.find((c) => c.slug === p.category)?.label ?? p.category;
+                    return (
+                      <li
+                        key={p.id}
+                        className="group overflow-hidden rounded-xl border border-line bg-surface transition hover:border-accent/50"
+                      >
+                        <div className="flex gap-4 p-4">
+                          <img
+                            src={p.image}
+                            alt=""
+                            className="h-24 w-20 shrink-0 rounded-md object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 font-display text-lg leading-snug">
+                              {p.name}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-subtle">{p.sku}</p>
+                            <p className="mt-2 text-sm tabular-nums">{formatInr(p.price)}</p>
+                            <p className="mt-1 text-[0.66rem] tracking-[0.14em] text-muted uppercase">
+                              {label} · {p.collection}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
+                          <StockBadge stock={p.stock} edited={edited} />
+                          <div className="flex items-center gap-2">
+                            <Link
+                              to="/product/$id"
+                              params={{ id: p.id }}
+                              className="text-[0.66rem] tracking-[0.14em] text-muted uppercase underline-offset-4 hover:underline"
+                            >
+                              View
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => setEditing(p.id)}
+                              className="rounded-full border border-line px-4 py-2 text-[0.66rem] tracking-[0.14em] uppercase transition hover:border-fg"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
       </main>
     </SiteShell>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "ok",
+}: {
+  icon: typeof Boxes;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "ok" | "warn";
+}) {
+  return (
+    <div className="rounded-xl border border-line bg-surface p-5 shadow-[0_18px_36px_-32px_rgba(91,54,35,0.5)]">
+      <div className="flex items-center justify-between">
+        <Icon className={cn("h-5 w-5", tone === "warn" ? "text-accent" : "text-muted")} />
+        {hint && <span className="text-[0.62rem] tracking-[0.12em] text-subtle uppercase">{hint}</span>}
+      </div>
+      <p className="mt-4 font-display text-3xl leading-none tabular-nums">{value}</p>
+      <p className="mt-2 text-[0.68rem] tracking-[0.16em] text-muted uppercase">{label}</p>
+    </div>
+  );
+}
+
+function StockBadge({ stock, edited }: { stock: number; edited: boolean }) {
+  const tone =
+    stock === 0
+      ? "border-danger/40 text-danger"
+      : stock <= 5
+        ? "border-accent/40 text-accent"
+        : "border-line text-muted";
+  return (
+    <span className="flex items-center gap-2">
+      <span className={cn("rounded-full border px-3 py-1 text-[0.62rem] tracking-[0.14em] uppercase", tone)}>
+        {stock === 0 ? "Sold out" : `${stock} in stock`}
+      </span>
+      {edited && (
+        <span className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">edited</span>
+      )}
+    </span>
   );
 }
 

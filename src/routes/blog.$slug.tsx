@@ -19,7 +19,11 @@ function Page() {
         </p>
         <h1 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{post.title}</h1>
         <p className="mt-4 text-lg text-muted">{post.excerpt}</p>
-        <img src={post.image} alt="" className="mt-8 h-[min(420px,50vh)] w-full rounded-xl object-cover" />
+        <img
+          src={post.image}
+          alt=""
+          className="mt-8 h-[min(420px,50vh)] w-full rounded-xl object-cover"
+        />
         <div className="mt-10 space-y-4 text-sm leading-relaxed text-muted">
           {post.body.map((p) => (
             <p key={p.slice(0, 24)}>{p}</p>

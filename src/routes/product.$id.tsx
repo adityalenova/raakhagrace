@@ -40,7 +40,9 @@ function Page() {
     );
   }
 
-  const related = catalog.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
+  const related = catalog
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 3);
   const inStock = product.stock > 0;
 
   function addBag() {
@@ -67,15 +69,21 @@ function Page() {
             <img src={product.image} alt={product.name} className="w-full object-cover" />
           </div>
           <div>
-            <p className="text-xs tracking-[0.2em] text-muted uppercase">{product.wear} · {product.metal}</p>
+            <p className="text-xs tracking-[0.2em] text-muted uppercase">
+              {product.wear} · {product.metal}
+            </p>
             <h1 className="mt-2 font-display text-4xl sm:text-5xl">{product.name}</h1>
             <p className="mt-4 text-2xl tabular-nums">
               {formatInr(product.price)}
               {product.compareAt ? (
-                <span className="ml-3 text-base text-subtle line-through">{formatInr(product.compareAt)}</span>
+                <span className="ml-3 text-base text-subtle line-through">
+                  {formatInr(product.compareAt)}
+                </span>
               ) : null}
             </p>
-            <p className="mt-2 text-sm text-muted">{inStock ? `${product.stock} in the atelier` : "Made to order — 10–16 days"}</p>
+            <p className="mt-2 text-sm text-muted">
+              {inStock ? `${product.stock} in the atelier` : "Made to order — 10–16 days"}
+            </p>
             <p className="mt-6 max-w-md leading-relaxed text-muted">{product.description}</p>
 
             <ul className="mt-6 grid gap-2 text-sm text-muted sm:grid-cols-2">
@@ -89,7 +97,12 @@ function Page() {
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <div className="flex items-center rounded-md border border-line">
-                <button type="button" className="grid h-12 w-12 place-items-center" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease">
+                <button
+                  type="button"
+                  className="grid h-12 w-12 place-items-center"
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  aria-label="Decrease"
+                >
                   <Minus className="h-4 w-4" />
                 </button>
                 <span className="w-8 text-center tabular-nums">{qty}</span>
@@ -196,7 +209,9 @@ function Page() {
               <div>
                 <h3 className="font-medium text-fg">Shipping & returns</h3>
                 <p className="mt-2">{product.shipping}</p>
-                <p className="mt-2">Unused pieces in original packaging may be returned within 7 days.</p>
+                <p className="mt-2">
+                  Unused pieces in original packaging may be returned within 7 days.
+                </p>
               </div>
             </div>
           )}

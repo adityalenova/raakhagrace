@@ -16,8 +16,17 @@ function Page() {
         />
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {JOURNAL.map((post) => (
-            <Link key={post.slug} to="/blog/$slug" params={{ slug: post.slug }} className="group overflow-hidden rounded-xl border border-line bg-surface">
-              <img src={post.image} alt="" className="h-52 w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+            <Link
+              key={post.slug}
+              to="/blog/$slug"
+              params={{ slug: post.slug }}
+              className="group overflow-hidden rounded-xl border border-line bg-surface"
+            >
+              <img
+                src={post.image}
+                alt=""
+                className="h-52 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+              />
               <div className="p-5">
                 <p className="text-[0.65rem] tracking-[0.2em] text-subtle uppercase">
                   {post.kicker} · {post.minutes} min read
@@ -30,7 +39,12 @@ function Page() {
         </div>
         <p className="mt-12 text-center text-sm text-muted">
           More notes soon. Follow{" "}
-          <a className="text-accent underline" href="https://www.instagram.com/raakhagrace/" target="_blank" rel="noreferrer">
+          <a
+            className="text-accent underline"
+            href="https://www.instagram.com/raakhagrace/"
+            target="_blank"
+            rel="noreferrer"
+          >
             @raakhagrace
           </a>{" "}
           for daily drops.

@@ -25,9 +25,8 @@ export const getCart = createServerFn({ method: "GET" })
 
 export const setCartItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(
-    (input: unknown) =>
-      z.object({ productId: z.string(), qty: z.number().int().min(0).max(20) }).parse(input),
+  .validator((input: unknown) =>
+    z.object({ productId: z.string(), qty: z.number().int().min(0).max(20) }).parse(input),
   )
   .handler(async ({ context, data }) => {
     const sql = await getSql();
@@ -46,9 +45,7 @@ export const setCartItem = createServerFn({ method: "POST" })
 export const mergeCart = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) =>
-    z
-      .array(z.object({ productId: z.string(), qty: z.number().int().min(1).max(20) }))
-      .parse(input),
+    z.array(z.object({ productId: z.string(), qty: z.number().int().min(1).max(20) })).parse(input),
   )
   .handler(async ({ context, data }) => {
     const sql = await getSql();

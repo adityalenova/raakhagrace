@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CatalogPage } from "@/components/CatalogPage";
 import { SiteShell } from "@/components/SiteShell";
 import { useProductList } from "@/lib/catalog-store";
-import { OCCASIONS, productsByCollection, productsByOccasion } from "@/lib/products";
+import { OCCASIONS, productsByOccasion } from "@/lib/products";
 
 type Search = { occasion?: string };
 
@@ -16,16 +16,19 @@ export const Route = createFileRoute("/gifts")({
 function Page() {
   const { occasion } = Route.useSearch();
   const catalog = useProductList();
-  const filtered = occasion ? productsByOccasion(occasion, catalog) : productsByCollection("gifts", catalog);
-  const products = filtered.length ? filtered : productsByCollection("gifts", catalog);
-  const title = occasion ? occasion[0].toUpperCase() + occasion.slice(1) : "Gifts";
+  // No piece is "not a gift" — everything leaves the atelier in gift-ready
+  // packaging — so the unfiltered Gifts page shows the whole bench rather than
+  // a collection tag that no product carries.
+  const match = OCCASIONS.find((o) => o.slug === occasion);
+  const products = occasion ? productsByOccasion(occasion, catalog) : catalog;
+  const title = match?.label ?? "Gifts";
   return (
     <SiteShell>
       <CatalogPage
         kicker="For someone"
         title={title}
         subtitle="Extraordinary gifts for birthdays, vows, and the days in between — wrapped as if they left our hands, not a warehouse."
-        hero="/images/occ-birthday.jpg"
+        hero={match?.image ?? "/images/occ-birthday.jpg"}
         products={products}
         chips={[
           { label: "All gifts", href: "/gifts", active: !occasion },

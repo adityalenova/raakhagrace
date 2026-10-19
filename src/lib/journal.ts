@@ -15,7 +15,8 @@ export const JOURNAL: JournalPost[] = [
     kicker: "Styling",
     minutes: 4,
     image: "/images/hero-woman.jpg",
-    excerpt: "A simple rule for mixing pendants and chains without weight or clutter — perfect for workdays and weekends.",
+    excerpt:
+      "A simple rule for mixing pendants and chains without weight or clutter — perfect for workdays and weekends.",
     body: [
       "Start with one fine chain at the collarbone. That first line is the architecture; everything else hangs from how quietly it sits.",
       "Add a slightly longer pendant — two to four centimetres below — so the two lengths never fight. Keep metals in the same family: yellow with yellow, rose with rose, or a considered mix of two at most.",
@@ -29,7 +30,8 @@ export const JOURNAL: JournalPost[] = [
     kicker: "Craft",
     minutes: 5,
     image: "/images/cat-mangalsutra.jpg",
-    excerpt: "Material notes on colour, finish, and longevity — and how small choices change how jewellery feels on skin.",
+    excerpt:
+      "Material notes on colour, finish, and longevity — and how small choices change how jewellery feels on skin.",
     body: [
       "A bead is not filler. On a mangalsutra or a layered necklace it is the rhythm the gold keeps time with.",
       "We source for even tone, smooth edges, and a density that does not drag. Cheap beads chip, fade, and catch on silk. Ours are meant to be forgotten on the skin and remembered in the mirror.",
@@ -43,7 +45,8 @@ export const JOURNAL: JournalPost[] = [
     kicker: "Gifting",
     minutes: 3,
     image: "/images/occ-birthday.jpg",
-    excerpt: "From anniversaries to firsts — choosing a piece that arrives beautifully and becomes part of someone’s everyday.",
+    excerpt:
+      "From anniversaries to firsts — choosing a piece that arrives beautifully and becomes part of someone’s everyday.",
     body: [
       "The best gift is the one that is worn on a Tuesday. Lightweight studs, slim bracelets, and small pendants pack easily and suit most styles.",
       "We wrap every order as if it were leaving our hands, not a warehouse. Add a short note at checkout; we include it on cream card inside the box.",
@@ -57,7 +60,8 @@ export const JOURNAL: JournalPost[] = [
     kicker: "Care",
     minutes: 3,
     image: "/images/cat-bracelets.jpg",
-    excerpt: "Soft cloth, dry storage, and when to avoid water — a short care guide for everyday sparkle.",
+    excerpt:
+      "Soft cloth, dry storage, and when to avoid water — a short care guide for everyday sparkle.",
     body: [
       "Wipe gold and diamonds with a soft, dry cloth after wear. Oils from skin and perfume dull a finish faster than time does.",
       "Put jewellery on last — after lotion, after scent. Take it off first when you wash, swim, or sleep.",
@@ -71,7 +75,8 @@ export const JOURNAL: JournalPost[] = [
     kicker: "Occasions",
     minutes: 4,
     image: "/images/occ-wedding.jpg",
-    excerpt: "How to choose pieces that photograph well and still feel comfortable through long ceremonies.",
+    excerpt:
+      "How to choose pieces that photograph well and still feel comfortable through long ceremonies.",
     body: [
       "A wedding week is long. Prioritise secure backs, balanced weight, and one statement piece so the rest of the look can stay soft.",
       "The Sacred Thread Mangalsutra and Layered Grace set are built for this: ceremonial in photograph, liveable in a crowded hall.",

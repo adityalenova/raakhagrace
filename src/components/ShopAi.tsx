@@ -20,7 +20,8 @@ export function ShopAi() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: "I am Grace AI. Tell me an occasion, metal, or budget and I will pull pieces from the Raakha Grace atelier.",
+      content:
+        "I am Grace AI. Tell me an occasion, metal, or budget and I will pull pieces from the Raakha Grace atelier.",
     },
   ]);
   const add = useCart((s) => s.add);
@@ -34,7 +35,10 @@ export function ShopAi() {
     setMessages(history);
     setBusy(true);
     const res = await askShopAi({
-      data: { message, history: history.slice(-6).map((m) => ({ role: m.role, content: m.content })) },
+      data: {
+        message,
+        history: history.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+      },
     });
     setBusy(false);
     setMessages((m) => [...m, { role: "assistant", content: res.ok ? res.text : res.error }]);
@@ -60,10 +64,19 @@ export function ShopAi() {
               <Sparkles className="h-4 w-4" />
             </div>
             <div className="flex-1 text-sm font-medium">Grace AI</div>
-            <Link to="/cart" className="grid h-9 w-9 place-items-center rounded-md border border-white/15" aria-label="Cart">
+            <Link
+              to="/cart"
+              className="grid h-9 w-9 place-items-center rounded-md border border-white/15"
+              aria-label="Cart"
+            >
               <ShoppingBag className="h-4 w-4" />
             </Link>
-            <button type="button" className="grid h-9 w-9 place-items-center" onClick={() => setOpen(false)} aria-label="Close">
+            <button
+              type="button"
+              className="grid h-9 w-9 place-items-center"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -77,10 +90,16 @@ export function ShopAi() {
                     {Math.round((1 - featured.price / featured.compareAt) * 100)}% off
                   </span>
                 ) : null}
-                <h3 className="mt-2 text-sm font-medium underline decoration-white/30">{featured.name}</h3>
+                <h3 className="mt-2 text-sm font-medium underline decoration-white/30">
+                  {featured.name}
+                </h3>
                 <p className="mt-1 text-sm tabular-nums text-emerald-300">
                   {formatInr(featured.price)}{" "}
-                  {featured.compareAt ? <span className="text-ink-muted line-through">{formatInr(featured.compareAt)}</span> : null}
+                  {featured.compareAt ? (
+                    <span className="text-ink-muted line-through">
+                      {formatInr(featured.compareAt)}
+                    </span>
+                  ) : null}
                 </p>
                 <ul className="mt-3 space-y-1 text-xs text-ink-muted">
                   {featured.details.map((d) => (
@@ -98,24 +117,39 @@ export function ShopAi() {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" className="rounded-full border border-white/15 px-3 py-2 text-xs" onClick={() => add(featured.id)}>
+              <button
+                type="button"
+                className="rounded-full border border-white/15 px-3 py-2 text-xs"
+                onClick={() => add(featured.id)}
+              >
                 Add to cart
               </button>
-              <Link to="/jewellery" className="rounded-full border border-white/15 px-3 py-2 text-xs">
+              <Link
+                to="/jewellery"
+                className="rounded-full border border-white/15 px-3 py-2 text-xs"
+              >
                 Shop bracelets
               </Link>
-              <Link to="/jewellery" className="rounded-full border border-white/15 px-3 py-2 text-xs">
+              <Link
+                to="/jewellery"
+                className="rounded-full border border-white/15 px-3 py-2 text-xs"
+              >
                 Browse jewellery sets
               </Link>
             </div>
 
             <div className="mt-4 space-y-3 text-sm">
               {messages.map((m, i) => (
-                <div key={i} className={m.role === "user" ? "text-right text-ink-muted" : "text-ink-fg"}>
+                <div
+                  key={i}
+                  className={m.role === "user" ? "text-right text-ink-muted" : "text-ink-fg"}
+                >
                   {m.content.replace(/\[[a-z0-9-]+\]/g, "").trim()}
                 </div>
               ))}
-              {busy && <p className="text-xs text-ink-muted">Grace is looking through the atelier…</p>}
+              {busy && (
+                <p className="text-xs text-ink-muted">Grace is looking through the atelier…</p>
+              )}
               {lastRecs.map((p) =>
                 p ? (
                   <div key={p.id} className="flex items-center gap-3 rounded-lg bg-white/5 p-2">

@@ -52,23 +52,48 @@ function Page() {
                 l ? (
                   <li key={l.productId} className="flex gap-4 py-5">
                     <Link to="/product/$id" params={{ id: l.product.id }}>
-                      <img src={l.product.image} alt="" className="h-24 w-24 rounded-md object-cover" />
+                      <img
+                        src={l.product.image}
+                        alt=""
+                        className="h-24 w-24 rounded-md object-cover"
+                      />
                     </Link>
                     <div className="flex-1">
-                      <Link to="/product/$id" params={{ id: l.product.id }} className="font-display text-xl">
+                      <Link
+                        to="/product/$id"
+                        params={{ id: l.product.id }}
+                        className="font-display text-xl"
+                      >
                         {l.product.name}
                       </Link>
-                      <p className="mt-1 text-xs tracking-[0.12em] text-subtle uppercase">{l.product.sku}</p>
-                      <p className="mt-1 tabular-nums text-sm text-muted">{formatInr(l.product.price)}</p>
+                      <p className="mt-1 text-xs tracking-[0.12em] text-subtle uppercase">
+                        {l.product.sku}
+                      </p>
+                      <p className="mt-1 tabular-nums text-sm text-muted">
+                        {formatInr(l.product.price)}
+                      </p>
                       <div className="mt-3 flex items-center gap-3">
-                        <button type="button" className="h-10 w-10 rounded border border-line" onClick={() => setQty(l.productId, l.qty - 1)}>
+                        <button
+                          type="button"
+                          className="h-10 w-10 rounded border border-line"
+                          onClick={() => setQty(l.productId, l.qty - 1)}
+                        >
                           −
                         </button>
                         <span className="tabular-nums">{l.qty}</span>
-                        <button type="button" className="h-10 w-10 rounded border border-line" onClick={() => setQty(l.productId, l.qty + 1)}>
+                        <button
+                          type="button"
+                          className="h-10 w-10 rounded border border-line"
+                          onClick={() => setQty(l.productId, l.qty + 1)}
+                        >
                           +
                         </button>
-                        <button type="button" className="ml-2 grid h-10 w-10 place-items-center text-muted" aria-label="Remove" onClick={() => remove(l.productId)}>
+                        <button
+                          type="button"
+                          className="ml-2 grid h-10 w-10 place-items-center text-muted"
+                          aria-label="Remove"
+                          onClick={() => remove(l.productId)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
