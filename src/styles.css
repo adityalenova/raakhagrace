@@ -1,0 +1,271 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #faf8f5;
+  --color-paper: #f3efe8;
+  --color-surface: #ffffff;
+  --color-fg: #1a1714;
+  --color-muted: #6b645c;
+  --color-subtle: #9a9288;
+  --color-line: #e6e0d6;
+  --color-accent: #8a7355;
+  --color-accent-fg: #faf8f5;
+  --color-ink: #111111;
+  --color-ink-fg: #f4efe6;
+  --color-ink-muted: #b7aea2;
+  --color-danger: #9b3d3d;
+  --font-display: "Cormorant Garamond", "Times New Roman", serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+@layer base {
+  /* critical-bg */
+  html {
+    background-color: #faf8f5;
+    color-scheme: only light;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+  body {
+    margin: 0;
+    background: #faf8f5 !important;
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spin-lux {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.marquee-track {
+  animation: marquee 42s linear infinite;
+}
+
+.lux-spinner {
+  animation: spin-lux 1.1s linear infinite;
+}
+
+.fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.menu-link:hover,
+.menu-link:active {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+}
+.menu-arrow {
+  font-size: 0.95rem;
+  opacity: 0.35;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.menu-link:hover .menu-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+.lotus-mark .petal {
+  transform-origin: 32px 34px;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lotus-mark.interactive:hover .petal.p1 {
+  transform: translateY(-1.5px) scale(1.04);
+}
+.lotus-mark.interactive:hover .petal.p2 {
+  transform: scale(1.03);
+}
+.lotus-mark.interactive:hover .petal.p3 {
+  transform: translateX(-1px) scale(1.03);
+}
+.lotus-mark.interactive:hover .petal.p4 {
+  transform: translateX(1px) scale(1.03);
+}
+.lotus-mark.interactive:hover .petal.p5 {
+  transform: translateY(1px) scale(1.02);
+}
+.lotus-mark.bloom .petal.p1 {
+  animation: petal-bloom-1 0.9s ease;
+}
+.lotus-mark.bloom .petal.p2 {
+  animation: petal-bloom-2 0.9s ease;
+}
+.lotus-mark.bloom .petal.p3 {
+  animation: petal-bloom-3 0.9s ease;
+}
+.lotus-mark.bloom .petal.p4 {
+  animation: petal-bloom-4 0.9s ease;
+}
+.lotus-mark.bloom .petal.p5 {
+  animation: petal-bloom-5 0.9s ease;
+}
+.lotus-mark.bloom .petal-core {
+  animation: core-pulse 0.9s ease;
+}
+
+@keyframes petal-bloom-1 {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateY(-4px) scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes petal-bloom-2 {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes petal-bloom-3 {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateX(-3px) scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes petal-bloom-4 {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateX(3px) scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes petal-bloom-5 {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateY(2px) scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes core-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.35);
+    opacity: 0.85;
+  }
+}
+
+.prose-legal h2 {
+  margin-top: 1.75rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--color-fg);
+}
+.prose-legal h3 {
+  margin-top: 1.25rem;
+  font-size: 0.95rem;
+  color: var(--color-fg);
+}
+.prose-legal ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+.prose-legal a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .lux-spinner,
+  .fade-up,
+  .lotus-mark .petal,
+  .lotus-mark.bloom .petal,
+  .lotus-mark.bloom .petal-core {
+    animation: none !important;
+    transition: none;
+  }
+}
+
+
+@keyframes hero-soft-zoom {
+  0% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.hero-soft-zoom {
+  animation: hero-soft-zoom 12s ease-out forwards;
+  will-change: transform;
+}
