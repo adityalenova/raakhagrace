@@ -2,55 +2,46 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 import { LotusMark } from "@/components/LotusMark";
 import { SiteShell } from "@/components/SiteShell";
-import { adminLogin, adminLogout, isAdminAuthed } from "@/lib/admin-session";
+import { adminStatus } from "@/lib/auth-status";
+import { signOut } from "@/lib/auth/client";
 import { useCatalog, useProductList } from "@/lib/catalog-store";
 import type { Product } from "@/lib/products";
 import { formatInr } from "@/lib/utils";
 
-export const Route = createFileRoute("/admin")({ component: Page });
+export const Route = createFileRoute("/admin")({
+  // Decided on the server from the session cookie, so the gate cannot be
+  // bypassed by editing browser state.
+  loader: () => adminStatus(),
+  component: Page,
+});
 
 function Page() {
-  const [authed, setAuthed] = useState(() => isAdminAuthed());
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState<string | null>(null);
+  const status = Route.useLoaderData();
   const [editing, setEditing] = useState<string | null>(null);
   const list = useProductList();
   const upsert = useCatalog((s) => s.upsert);
   const reset = useCatalog((s) => s.reset);
   const resetAll = useCatalog((s) => s.resetAll);
 
-  if (!authed) {
+  if (!status.allowed) {
     return (
       <SiteShell>
         <main className="mx-auto max-w-md px-4 py-16">
           <LotusMark className="h-10 w-10" />
           <h1 className="mt-4 font-display text-4xl">Atelier admin</h1>
-          <p className="mt-2 text-sm text-muted">Sign in to edit product details, prices, and stock. Changes appear on the storefront in this browser.</p>
-          <form
-            className="mt-8 space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (adminLogin(email, password)) {
-                setAuthed(true);
-                setErr(null);
-              } else setErr("Those credentials are not recognised.");
-            }}
+          <p className="mt-2 text-sm text-muted">
+            {status.email
+              ? `${status.email} is not on the admin allowlist. Sign in with an address listed in ADMIN_EMAILS.`
+              : status.configured
+                ? "Sign in with Google using an address on the admin allowlist."
+                : "Admin access is not configured yet — set ADMIN_EMAILS on the deployment to allow your Google address."}
+          </p>
+          <Link
+            to="/login"
+            className="mt-8 inline-flex h-12 items-center rounded-md bg-fg px-6 text-sm tracking-[0.16em] text-bg uppercase"
           >
-            <input className="h-12 w-full rounded-md border border-line bg-surface px-4" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input
-              className="h-12 w-full rounded-md border border-line bg-surface px-4"
-              placeholder="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {err && <p className="text-sm text-danger">{err}</p>}
-            <button type="submit" className="h-12 w-full rounded-md bg-fg text-sm tracking-[0.16em] text-bg uppercase">
-              Enter
-            </button>
-          </form>
-
+            Sign in to continue
+          </Link>
         </main>
       </SiteShell>
     );
@@ -70,14 +61,7 @@ function Page() {
             <button type="button" className="text-sm underline" onClick={() => resetAll()}>
               Reset all to seed
             </button>
-            <button
-              type="button"
-              className="text-sm underline"
-              onClick={() => {
-                adminLogout();
-                setAuthed(false);
-              }}
-            >
+            <button type="button" className="text-sm underline" onClick={() => void signOut("/")}>
               Sign out admin
             </button>
           </div>
@@ -110,7 +94,11 @@ function Page() {
                 <Link to="/product/$id" params={{ id: p.id }} className="text-sm underline">
                   View
                 </Link>
-                <button type="button" className="rounded-full border border-line px-4 py-2 text-[0.7rem] tracking-[0.14em] uppercase" onClick={() => setEditing(p.id)}>
+                <button
+                  type="button"
+                  className="rounded-full border border-line px-4 py-2 text-[0.7rem] tracking-[0.14em] uppercase"
+                  onClick={() => setEditing(p.id)}
+                >
                   Edit
                 </button>
               </li>
@@ -192,7 +180,10 @@ function Editor({
       compareAt: form.compareAt ? Number(form.compareAt) : undefined,
       description: form.description,
       story: form.story,
-      details: form.details.split("\n").map((l) => l.trim()).filter(Boolean),
+      details: form.details
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean),
       metal: form.metal,
       purity: form.purity,
       weight: form.weight,
@@ -219,41 +210,76 @@ function Editor({
         {fields.map(([k, label]) => (
           <label key={k} className="block text-sm">
             <span className="text-muted">{label}</span>
-            <input className="mt-1 h-11 w-full rounded-md border border-line bg-surface px-3" value={form[k]} onChange={(e) => set(k, e.target.value)} />
+            <input
+              className="mt-1 h-11 w-full rounded-md border border-line bg-surface px-3"
+              value={form[k]}
+              onChange={(e) => set(k, e.target.value)}
+            />
           </label>
         ))}
       </div>
       <label className="block text-sm">
         <span className="text-muted">Short description</span>
-        <textarea className="mt-1 min-h-20 w-full rounded-md border border-line bg-surface p-3" value={form.description} onChange={(e) => set("description", e.target.value)} />
+        <textarea
+          className="mt-1 min-h-20 w-full rounded-md border border-line bg-surface p-3"
+          value={form.description}
+          onChange={(e) => set("description", e.target.value)}
+        />
       </label>
       <label className="block text-sm">
         <span className="text-muted">Story</span>
-        <textarea className="mt-1 min-h-28 w-full rounded-md border border-line bg-surface p-3" value={form.story} onChange={(e) => set("story", e.target.value)} />
+        <textarea
+          className="mt-1 min-h-28 w-full rounded-md border border-line bg-surface p-3"
+          value={form.story}
+          onChange={(e) => set("story", e.target.value)}
+        />
       </label>
       <label className="block text-sm">
         <span className="text-muted">Details (one per line)</span>
-        <textarea className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3" value={form.details} onChange={(e) => set("details", e.target.value)} />
+        <textarea
+          className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3"
+          value={form.details}
+          onChange={(e) => set("details", e.target.value)}
+        />
       </label>
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="text-muted">Care</span>
-          <textarea className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3" value={form.care} onChange={(e) => set("care", e.target.value)} />
+          <textarea
+            className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3"
+            value={form.care}
+            onChange={(e) => set("care", e.target.value)}
+          />
         </label>
         <label className="block text-sm">
           <span className="text-muted">Warranty</span>
-          <textarea className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3" value={form.warranty} onChange={(e) => set("warranty", e.target.value)} />
+          <textarea
+            className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3"
+            value={form.warranty}
+            onChange={(e) => set("warranty", e.target.value)}
+          />
         </label>
         <label className="block text-sm">
           <span className="text-muted">Shipping</span>
-          <textarea className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3" value={form.shipping} onChange={(e) => set("shipping", e.target.value)} />
+          <textarea
+            className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3"
+            value={form.shipping}
+            onChange={(e) => set("shipping", e.target.value)}
+          />
         </label>
       </div>
       <div className="flex flex-wrap gap-3 pt-2">
-        <button type="submit" className="h-12 rounded-md bg-fg px-6 text-sm tracking-[0.16em] text-bg uppercase">
+        <button
+          type="submit"
+          className="h-12 rounded-md bg-fg px-6 text-sm tracking-[0.16em] text-bg uppercase"
+        >
           Save piece
         </button>
-        <button type="button" className="h-12 rounded-md border border-line px-6 text-sm uppercase" onClick={onCancel}>
+        <button
+          type="button"
+          className="h-12 rounded-md border border-line px-6 text-sm uppercase"
+          onClick={onCancel}
+        >
           Cancel
         </button>
         <button type="button" className="h-12 text-sm underline" onClick={onReset}>

@@ -37,15 +37,22 @@ import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
+import { resendConfigured, sendEmail } from "../email/sender.server";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
+import { GROK_ISSUER_DEFAULT, PREVIEW_ALLOWED_HOSTS } from "./preview";
 import {
-  GROK_ISSUER_DEFAULT,
-  PREVIEW_ALLOWED_HOSTS,
-  PREVIEW_CLIENT_ID,
-  PREVIEW_CLIENT_SECRET,
-} from "./preview";
+  authDisabled,
+  brokerEnabled,
+  env,
+  googleClientId,
+  googleClientSecret,
+  googleEnabled,
+  grokClientId,
+  grokClientSecret,
+  signInEnabled,
+} from "./status-core.server";
 
 // Kick (and share) PGLite bootstrap as soon as the auth server module loads.
 void ensureDbReady();
@@ -65,25 +72,34 @@ function previewAuthSecret(): string {
 }
 
 /** Read an env var, treating empty/whitespace as unset. */
-const env = (key: string): string | undefined => {
-  const value = process.env[key]?.trim();
-  return value ? value : undefined;
-};
+// (the shared `env` probe lives in `./status-core.server`)
 
-// Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
-// provisions auth; set it to "false" to force auth off everywhere (dev user).
-const authDisabled = true; // UI-only site — no env / broker required
-
-// Broker federation creds: the deployer injects a per-app client when deployed;
-// otherwise fall back to the shared live-preview client, which the broker accepts
-// for any `*.grok-sandbox.com` callback (see `./preview`).
+// Explicit off-switch, for a UI-only deploy: set `VITE_AUTH_ENABLED=false`.
+// Anything else (including unset) means sign-in is live as soon as a provider
+// has credentials — see `authConfigured` below. All provider probes live in
+// `./status-core.server` so the sign-in screen reports exactly what this file
+// builds.
+//
+// Direct Google OAuth (the path a normal host like Vercel uses). Better Auth
+// owns the exchange and stores the Google email + name on the `user` row, so the
+// storefront can read the visitor's address after sign-in.
+//
+// Broker federation creds. Unlike the sandbox preview, a deployed app must be
+// issued its own client by the deployer — the baked preview client only accepts
+// `*.grok-sandbox.com` callbacks, so on any other host it would dead-end the
+// button. Therefore: no implicit fallback here, only an explicit injection.
 const grokIssuer = env("GROK_AUTH_ISSUER") ?? GROK_ISSUER_DEFAULT;
-const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
-const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
 
 /** True when federated sign-in is active (real auth is enforced). */
-export const authConfigured =
-  !authDisabled && Boolean(grokClientId && grokClientSecret);
+export const authConfigured = signInEnabled();
+
+if (!authConfigured && !authDisabled) {
+  console.warn(
+    "[auth] No provider credentials found (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET" +
+      " or GROK_AUTH_CLIENT_ID/GROK_AUTH_CLIENT_SECRET) — sign-in stays off and" +
+      " requireUserId() falls back to the dev user.",
+  );
+}
 
 // This app's own Better Auth origin. When deployed the deployer injects the
 // public URL. In the sandbox live preview there's no fixed URL (each preview gets
@@ -91,7 +107,13 @@ export const authConfigured =
 // it derives the origin per-request from the (proxied) host, validated against the
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
-const explicitBaseURL = env("BETTER_AUTH_URL");
+const explicitBaseURL =
+  env("BETTER_AUTH_URL") ??
+  // Vercel injects the production domain on every build, so a deploy needs no
+  // hand-set BETTER_AUTH_URL; preview deploys still fall back to the wildcard.
+  (env("VERCEL_PROJECT_PRODUCTION_URL")
+    ? `https://${env("VERCEL_PROJECT_PRODUCTION_URL")}`
+    : undefined);
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
@@ -106,7 +128,7 @@ const LOCAL_DEV_ORIGINS: string[] = [
 const baseURL = explicitBaseURL ?? {
   // Include loopback hosts so dynamic baseURL resolves for local email/password
   // (not only the preview wildcard).
-  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
+  allowedHosts: [...previewAllowedHosts, "*.vercel.app", "localhost", "127.0.0.1", "[::1]"],
   // `auto` → trust both http:// and https:// expansions of allowedHosts
   // (preview is https; local dev is http).
   protocol: "auto" as const,
@@ -115,8 +137,11 @@ const baseURL = explicitBaseURL ?? {
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
+// `https://*.vercel.app` covers Vercel preview deploys, which get a distinct
+// commit-hash host per deployment; the production host is pinned above.
+const VERCEL_WILDCARDS: string[] = env("VERCEL") ? ["https://*.vercel.app", "*.vercel.app"] : [];
 const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
+  ? [explicitBaseURL, ...VERCEL_WILDCARDS, ...LOCAL_DEV_ORIGINS]
   : [
       // Host wildcards (matched against Origin's host)
       ...previewAllowedHosts,
@@ -150,27 +175,46 @@ export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
-const grokOAuthPlugin = authConfigured
-  ? genericOAuth({
-      config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
-        providerId,
-        clientId: grokClientId as string,
-        clientSecret: grokClientSecret as string,
-        // Prefer static endpoints over `discoveryUrl` so initiating (and
-        // completing) OAuth does not wait on a broker discovery fetch.
-        authorizationUrl: grokAuthorizationUrl,
-        tokenUrl: grokTokenUrl,
-        userInfoUrl: grokUserInfoUrl,
-        scopes: ["openid", "profile", "email"],
-        // `prompt: "login"` forces the broker to re-authenticate against the
-        // upstream on every sign-in instead of silently reusing an existing
-        // broker session. Combined with the broker sending Google
-        // `prompt=select_account`, the user always gets the account chooser
-        // and can pick (or switch) which account to sign in with.
-        authorizationUrlParams: { idp, prompt: "login" },
-      })),
-    })
-  : null;
+const grokOAuthPlugin =
+  authConfigured && brokerEnabled
+    ? genericOAuth({
+        config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
+          providerId,
+          clientId: grokClientId as string,
+          clientSecret: grokClientSecret as string,
+          // Prefer static endpoints over `discoveryUrl` so initiating (and
+          // completing) OAuth does not wait on a broker discovery fetch.
+          authorizationUrl: grokAuthorizationUrl,
+          tokenUrl: grokTokenUrl,
+          userInfoUrl: grokUserInfoUrl,
+          scopes: ["openid", "profile", "email"],
+          // `prompt: "login"` forces the broker to re-authenticate against the
+          // upstream on every sign-in instead of silently reusing an existing
+          // broker session. Combined with the broker sending Google
+          // `prompt=select_account`, the user always gets the account chooser
+          // and can pick (or switch) which account to sign in with.
+          authorizationUrlParams: { idp, prompt: "login" },
+        })),
+      })
+    : null;
+
+// Direct Google sign-in. Better Auth handles the exchange itself and writes the
+// Google `email`/`name`/`picture` onto its user + account rows, so
+// `useCurrentUser().primaryEmail` is the visitor's real Google address.
+// Callback URL to whitelist in Google Cloud Console:
+//   https://<your-host>/api/auth/callback/google   (plus the localhost one for dev)
+const googleSocial = googleEnabled
+  ? {
+      google: {
+        clientId: googleClientId as string,
+        clientSecret: googleClientSecret as string,
+        scope: ["openid", "email", "profile"],
+        // Google's consent screen is configured for exactly these scopes; the
+        // default extra scopes would trigger the unverified-app warning.
+        disableDefaultScope: true,
+      },
+    }
+  : undefined;
 
 export const auth = betterAuth({
   baseURL,
@@ -197,12 +241,45 @@ export const auth = betterAuth({
       trustedProviders: [
         ...GROK_PROVIDERS.map((p) => p.providerId),
         GATE_PROVIDER_ID,
+        // Direct Google is a first-party identity too, so a visitor who signed up
+        // with email/password and then uses "Continue with Google" with the same
+        // address lands on the same account instead of `account_not_linked`.
+        ...(googleEnabled ? ["google"] : []),
       ],
       // X's synthetic email is never "verified", so don't gate linking on the
       // local user's email-verified state.
       requireLocalEmailVerified: false,
     },
   },
+
+  // Google (and any broker upstream) as a native social provider.
+  ...(googleSocial ? { socialProviders: googleSocial } : {}),
+
+  // Route Better Auth's own mails (verify email, forget password) through Resend
+  // when it is configured; otherwise it falls back to its built-in dev logger.
+  ...(resendConfigured()
+    ? {
+        email: {
+          sendEmail: async (data: {
+            user: unknown;
+            url: string;
+            subject: string;
+            text: string;
+          }) => {
+            // `user.email` is the only field we need; keep the import structural.
+            const to = (data.user as { email?: string }).email;
+            if (!to) return;
+            const result = await sendEmail({
+              to,
+              subject: data.subject,
+              // Resend renders both, so give it the plain body plus a link.
+              html: `<p>${data.text.replace(/\n/g, "<br/>")}</p>`,
+            });
+            if (!result.ok) console.error("[auth] Resend mail failed:", result.error);
+          },
+        },
+      }
+    : {}),
 
   // Cache the session in the short-lived signed `session_data` cookie so reads
   // (incl. the client's `/get-session`) skip the DB — this shrinks the "loading"

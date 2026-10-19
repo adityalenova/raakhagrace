@@ -35,8 +35,12 @@ export const authClient = createAuthClient({
  * with the key removed, sign-in is real in preview (baked preview client) and
  * when deployed (injected per-app client).
  */
-/** Auth is UI-only — no env vars required. */
-export const authEnabled = false;
+/**
+ * True unless the deploy explicitly opts out with `VITE_AUTH_ENABLED=false`.
+ * Unset means on — a provider with no credentials simply reports itself absent
+ * through `getSignInStatus()`, which is what actually renders the buttons.
+ */
+export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };
@@ -74,10 +78,7 @@ function setBearerToken(token: string | null): void {
  * popup there and a normal redirect everywhere else.
  */
 function inLivePreview(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.location.hostname.endsWith(".grok-sandbox.com")
-  );
+  return typeof window !== "undefined" && window.location.hostname.endsWith(".grok-sandbox.com");
 }
 
 /** Message the popup posts back to the opener once sign-in completes. */
@@ -137,7 +138,11 @@ export async function signIn(
     if (typeof window !== "undefined") {
       const dest = new URL(callbackURL, window.location.origin);
       const here = window.location;
-      if (dest.origin !== here.origin || dest.pathname !== here.pathname || dest.search !== here.search) {
+      if (
+        dest.origin !== here.origin ||
+        dest.pathname !== here.pathname ||
+        dest.search !== here.search
+      ) {
         window.location.href = callbackURL;
       }
     }
@@ -151,6 +156,41 @@ export async function signIn(
   });
   if (error) throw new Error(error.message ?? "Sign-in failed");
   if (data?.url) window.location.href = data.url;
+}
+
+/**
+ * Sign in with the visitor's own Google account (direct OAuth, no broker).
+ *
+ * Used on any normal host — Vercel included. Better Auth completes at
+ * `/api/auth/callback/google`, creates (or links) the user row with the Google
+ * email + name, sets the `__Host-grok-auth.session_token` cookie, and redirects
+ * to `callbackURL`. Unlike the broker path this is a plain top-level redirect:
+ * Google's own consent page needs the full window.
+ */
+export async function signInWithGoogle(
+  opts: { callbackURL?: string; errorCallbackURL?: string } = {},
+): Promise<void> {
+  const callbackURL = opts.callbackURL ?? "/";
+  const errorCallbackURL = opts.errorCallbackURL ?? "/login";
+
+  // Drop any prior identity first, so "sign in as someone else" really swaps
+  // account instead of silently returning the existing session.
+  await runPreSignInSignOut({
+    livePreview: inLivePreview(),
+    hasBearer: Boolean(getBearerToken()),
+    requestSignOut: () => authClient.signOut(),
+    clearToken: () => setBearerToken(null),
+  });
+
+  const { data, error } = await authClient.signIn.social({
+    provider: "google",
+    callbackURL,
+    errorCallbackURL,
+  });
+  if (error) throw new Error(error.message ?? "Google sign-in failed");
+  // The client normally navigates on its own; assign explicitly so callers that
+  // pass a same-page callbackURL still leave the sign-in screen.
+  if (data?.url && typeof window !== "undefined") window.location.href = data.url;
 }
 
 /**

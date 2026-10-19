@@ -2,8 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, MapPin, Phone, User, Mail, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SiteShell } from "@/components/SiteShell";
+import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useCatalog } from "@/lib/catalog-store";
 import { useCart } from "@/lib/cart-store";
+import { sendOrderEnquiry } from "@/lib/order-email";
 import { formatInr } from "@/lib/utils";
 
 const WA_NUMBER = "916304837120";
@@ -42,6 +44,19 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [enquiry, setEnquiry] = useState<{
+    state: "idle" | "sending" | "sent" | "error";
+    note?: string;
+  }>({ state: "idle" });
+  const user = useCurrentUser();
+
+  // A signed-in visitor's Google name + address fill the form for them; they can
+  // still type over it (e.g. booking a gift to a different email).
+  useEffect(() => {
+    if (!user) return;
+    setName((current) => current || user.displayName || "");
+    setEmail((current) => current || user.primaryEmail || "");
+  }, [user]);
 
   if (!line) {
     return (
@@ -76,7 +91,47 @@ function CheckoutPage() {
     ]
       .filter(Boolean)
       .join("\n");
-    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
+  /**
+   * Parallel paper trail: posts the same enquiry to the atelier inbox by email
+   * (and a courtesy confirmation to the customer) so a booking is recorded even
+   * if the WhatsApp tab is dismissed.
+   */
+  async function bookByEmail() {
+    const trimmedEmail = email.trim();
+    if (!name.trim() || !phone.trim() || !address.trim()) return;
+    if (!trimmedEmail) {
+      setEnquiry({ state: "error", note: "Add an email address so we can reply." });
+      return;
+    }
+    setEnquiry({ state: "sending" });
+    try {
+      const result = await sendOrderEnquiry({
+        data: {
+          customerName: name.trim(),
+          customerEmail: trimmedEmail,
+          phone: phone.trim(),
+          address: address.trim(),
+          items: [{ name: p.name, sku: p.sku, qty, price: p.price }],
+        },
+      });
+      setEnquiry(
+        result.ok
+          ? { state: "sent", note: `Sent to ${trimmedEmail} — we will confirm on WhatsApp.` }
+          : { state: "error", note: result.error },
+      );
+    } catch (err) {
+      setEnquiry({
+        state: "error",
+        note: err instanceof Error ? err.message : "Could not send the enquiry.",
+      });
+    }
   }
 
   return (
@@ -119,7 +174,9 @@ function CheckoutPage() {
             </div>
 
             <h1 className="mt-4 font-display text-3xl">Booking details</h1>
-            <p className="mt-1 text-sm text-muted">Share your details and we will confirm on WhatsApp.</p>
+            <p className="mt-1 text-sm text-muted">
+              Share your details and we will confirm on WhatsApp.
+            </p>
 
             <div className="mt-5 rounded-lg border border-line bg-paper/60 px-4 py-3">
               <p className="text-[0.65rem] tracking-[0.16em] text-subtle uppercase">Product</p>
@@ -191,7 +248,26 @@ function CheckoutPage() {
               >
                 Book on WhatsApp
               </button>
-              <p className="text-center text-[0.7rem] text-subtle">Opens WhatsApp chat with +91 63048 37120</p>
+              <p className="text-center text-[0.7rem] text-subtle">
+                Opens WhatsApp chat with +91 63048 37120
+              </p>
+
+              <button
+                type="button"
+                onClick={bookByEmail}
+                disabled={enquiry.state === "sending"}
+                className="h-12 w-full rounded-md border border-fg text-sm tracking-[0.14em] uppercase transition hover:bg-fg hover:text-bg disabled:opacity-60"
+              >
+                {enquiry.state === "sending" ? "Sending…" : "Also send by email"}
+              </button>
+              {enquiry.note && (
+                <p
+                  role="status"
+                  className={`text-center text-[0.7rem] ${enquiry.state === "error" ? "text-danger" : "text-muted"}`}
+                >
+                  {enquiry.note}
+                </p>
+              )}
             </form>
           </div>
         </div>

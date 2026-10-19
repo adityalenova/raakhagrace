@@ -27,6 +27,7 @@ import { Route as OrnamentsRouteImport } from './routes/ornaments'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SpecialsRouteImport } from './routes/specials'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -121,6 +122,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/product/$id': typeof ProductIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/product/$id': typeof ProductIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/product/$id': typeof ProductIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/specials'
     | '/terms'
+    | '/auth/callback'
     | '/blog/$slug'
     | '/product/$id'
     | '/api/auth/$'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/specials'
     | '/terms'
+    | '/auth/callback'
     | '/blog/$slug'
     | '/product/$id'
     | '/api/auth/$'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/specials'
     | '/terms'
+    | '/auth/callback'
     | '/blog/$slug'
     | '/product/$id'
     | '/api/auth/$'
@@ -298,6 +310,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SpecialsRoute: typeof SpecialsRoute
   TermsRoute: typeof TermsRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   ProductIdRoute: typeof ProductIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/$slug': {
       id: '/blog/$slug'
       path: '/$slug'
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SpecialsRoute: SpecialsRoute,
   TermsRoute: TermsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   ProductIdRoute: ProductIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
