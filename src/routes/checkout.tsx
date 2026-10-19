@@ -2,13 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, MapPin, Phone, User, Mail, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SiteShell } from "@/components/SiteShell";
+import { createWhatsAppBooking } from "@/lib/bookings";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useCatalog } from "@/lib/catalog-store";
 import { useCart } from "@/lib/cart-store";
+import { WHATSAPP_DISPLAY, whatsappLink } from "@/lib/contact";
 import { sendOrderEnquiry } from "@/lib/order-email";
 import { formatInr } from "@/lib/utils";
-
-const WA_NUMBER = "916304837120";
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
@@ -48,6 +48,10 @@ function CheckoutPage() {
     state: "idle" | "sending" | "sent" | "error";
     note?: string;
   }>({ state: "idle" });
+  /** The booking we recorded for this cart, once it exists. */
+  const [booking, setBooking] = useState<{ state: "idle" | "saving" | "sent"; ref?: string }>({
+    state: "idle",
+  });
   const user = useCurrentUser();
 
   // A signed-in visitor's Google name + address fill the form for them; they can
@@ -74,28 +78,68 @@ function CheckoutPage() {
   const { product: p, qty } = line;
   const total = p.price * qty;
 
-  function bookOnWhatsApp(e: FormEvent) {
+  /**
+   * Record the booking on the site first, then open WhatsApp with its
+   * reference in the message. That order matters: the chat is where the deal
+   * is struck, but the reference is what makes the order findable afterwards —
+   * by the customer in their dashboard, and by us on the admin desk.
+   */
+  async function bookOnWhatsApp(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || !address.trim()) return;
-    const msg = [
-      `Namaste! I would like to book this piece from Raakha Grace.`,
-      ``,
-      `*Product:* ${p.name}`,
-      `*SKU:* ${p.sku}`,
-      `*Price:* ${formatInr(total)}${qty > 1 ? ` (qty ${qty})` : ""}`,
-      ``,
-      `*Name:* ${name.trim()}`,
-      `*Phone:* ${phone.trim()}`,
-      email.trim() ? `*Email:* ${email.trim()}` : null,
-      `*Address:* ${address.trim()}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    window.open(
-      `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    if (!name.trim() || !phone.trim() || !address.trim() || booking.state === "saving") return;
+    setBooking({ state: "saving" });
+    let res: Awaited<ReturnType<typeof createWhatsAppBooking>>;
+    try {
+      res = await createWhatsAppBooking({
+        data: {
+          items: [{ productId: p.id, qty }],
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim() || undefined,
+          address: address.trim(),
+        },
+      });
+    } catch (err) {
+      // A failed write must not strand the button on "Recording…" — the
+      // WhatsApp route still works, so say what happened and let them send.
+      setBooking({ state: "idle" });
+      setEnquiry({
+        state: "error",
+        note:
+          err instanceof Error
+            ? `We could not save the reference (${err.message}). Your WhatsApp chat still opens — send the details and we will track it by phone number.`
+            : "We could not save the reference. Your WhatsApp chat still opens.",
+      });
+      window.open(whatsappLink(msgFor(undefined)), "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!res.ok) {
+      setBooking({ state: "idle" });
+      setEnquiry({ state: "error", note: res.error });
+      return;
+    }
+    setBooking({ state: "sent", ref: res.ref });
+    const msg = msgFor(res.ref);
+    window.open(whatsappLink(msg), "_blank", "noopener,noreferrer");
+
+    /** The chat text, with the reference on the first line when we have one. */
+    function msgFor(ref: string | undefined) {
+      return [
+        `Namaste! I would like to book this piece from Raakha Grace.`,
+        ``,
+        ref ? `*Booking reference:* ${ref}` : null,
+        `*Product:* ${p.name}`,
+        `*SKU:* ${p.sku}`,
+        `*Price:* ${formatInr(total)}${qty > 1 ? ` (qty ${qty})` : ""}`,
+        ``,
+        `*Name:* ${name.trim()}`,
+        `*Phone:* ${phone.trim()}`,
+        email.trim() ? `*Email:* ${email.trim()}` : null,
+        `*Address:* ${address.trim()}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
   }
 
   /**
@@ -244,13 +288,32 @@ function CheckoutPage() {
 
               <button
                 type="submit"
-                className="mt-auto h-12 w-full rounded-md bg-fg text-sm tracking-[0.14em] text-bg uppercase transition hover:opacity-90"
+                disabled={booking.state === "saving"}
+                className="mt-auto h-12 w-full rounded-md bg-fg text-sm tracking-[0.14em] text-bg uppercase transition hover:opacity-90 disabled:opacity-60"
               >
-                Book on WhatsApp
+                {booking.state === "saving" ? "Recording your booking…" : "Book on WhatsApp"}
               </button>
               <p className="text-center text-[0.7rem] text-subtle">
-                Opens WhatsApp chat with +91 63048 37120
+                Opens WhatsApp chat with {WHATSAPP_DISPLAY}
               </p>
+
+              {booking.state === "sent" && booking.ref && (
+                <div className="rounded-lg border border-accent/30 bg-paper/70 px-4 py-3 text-center">
+                  <p className="text-[0.65rem] tracking-[0.16em] text-subtle uppercase">
+                    Booking reference
+                  </p>
+                  <p className="mt-1 font-display text-2xl tracking-[0.12em] text-fg">
+                    {booking.ref}
+                  </p>
+                  <p className="mt-2 text-[0.75rem] leading-relaxed text-muted">
+                    Quote this in the chat — it is already saved on the site. Follow it from your{" "}
+                    <Link to="/dashboard" className="text-accent underline underline-offset-4">
+                      dashboard
+                    </Link>
+                    , or sign in there to attach it to your account.
+                  </p>
+                </div>
+              )}
 
               <button
                 type="button"

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
+import { InViewVideo } from "./InViewVideo";
 import { CATEGORIES, latestProducts, OCCASIONS } from "@/lib/products";
 import { useProductList } from "@/lib/catalog-store";
 import { ProductCard } from "./ProductCard";
@@ -15,18 +16,12 @@ export function HomePage() {
   return (
     <main>
       <section className="relative w-full overflow-hidden bg-ink">
-        <div className="aspect-video w-full">
-          <video
-            className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-          >
-            <source src="/videos/hero-jewellery.mp4" type="video/mp4" />
-          </video>
-        </div>
+        <InViewVideo
+          wrapperClassName="aspect-video w-full"
+          className="h-full w-full object-cover"
+          src="/videos/hero-jewellery.mp4"
+          poster="/images/hero-poster.jpg"
+        />
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
@@ -45,6 +40,8 @@ export function HomePage() {
               <img
                 src={c.image}
                 alt={c.label}
+                loading="lazy"
+                decoding="async"
                 className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-80"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-fg/50 to-transparent" />
@@ -66,6 +63,8 @@ export function HomePage() {
               <img
                 src={c.image}
                 alt={c.label}
+                loading="lazy"
+                decoding="async"
                 className="h-48 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-56"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-fg/45 to-transparent" />
@@ -76,17 +75,12 @@ export function HomePage() {
       </section>
 
       <section className="relative h-[70vh] min-h-[420px] overflow-hidden bg-ink">
-        <video
-          className="absolute inset-0 h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/images/hero-pendant.jpg"
-        >
-          <source src="/videos/cover.mp4" type="video/mp4" />
-        </video>
+        <InViewVideo
+          wrapperClassName="absolute inset-0"
+          className="h-full w-full object-cover"
+          src="/videos/cover.mp4"
+          poster="/images/atelier-still.jpg"
+        />
         <div className="absolute inset-0 bg-fg/25" />
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-bg">
           <p className="text-[0.7rem] tracking-[0.4em] uppercase">The Atelier Film</p>
@@ -138,7 +132,13 @@ export function HomePage() {
                 search={{ occasion: o.slug }}
                 className="relative w-[78vw] shrink-0 overflow-hidden rounded-xl sm:w-72"
               >
-                <img src={o.image} alt={o.label} className="h-[420px] w-full object-cover" />
+                <img
+                  src={o.image}
+                  alt={o.label}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-[420px] w-full object-cover"
+                />
                 <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-sm bg-paper px-4 py-2 text-sm">
                   {o.label}
                 </span>
@@ -150,18 +150,16 @@ export function HomePage() {
 
       <section className="bg-bg py-16">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
+          {/* A still, not a second copy of the film: two <video> tags on one
+              source made the browser download the whole file twice. */}
           <div className="overflow-hidden rounded-xl">
-            <video
+            <img
+              src="/images/atelier-still.jpg"
+              alt="Beads and gold work in progress at the Raakha Grace bench"
+              loading="lazy"
+              decoding="async"
               className="aspect-[4/3] w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster="/images/hero-pendant.jpg"
-            >
-              <source src="/videos/cover.mp4" type="video/mp4" />
-            </video>
+            />
           </div>
           <div>
             <p className="text-[0.7rem] tracking-[0.3em] text-accent uppercase">

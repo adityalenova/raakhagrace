@@ -150,7 +150,7 @@ export function Header() {
                   <TileRail tiles={m.tiles} onNavigate={() => setOpen(false)} />
                   <Link
                     to={m.to}
-                    className="mt-4 inline-block text-[0.65rem] tracking-[0.18em] text-accent uppercase underline underline-offset-4"
+                    className="mt-4 inline-block text-[0.72rem] tracking-[0.16em] text-accent uppercase underline underline-offset-4"
                     onClick={() => setOpen(false)}
                   >
                     View all {m.label}
@@ -181,7 +181,7 @@ export function Header() {
 
           {brand}
 
-          <nav className="hidden items-center gap-7 text-[0.65rem] font-medium tracking-[0.18em] uppercase text-fg xl:flex">
+          <nav className="hidden items-center gap-8 text-[0.8rem] font-medium tracking-[0.13em] uppercase text-fg xl:flex">
             {NAV_MENUS.map((n) => {
               const shown = isActive(n.to) || menu === n.label;
               return (
@@ -225,7 +225,7 @@ export function Header() {
                 <p className="mt-2 text-sm leading-relaxed text-muted">{mega.blurb}</p>
                 <Link
                   to={mega.to}
-                  className="mt-5 inline-block text-[0.65rem] tracking-[0.18em] text-accent uppercase underline underline-offset-4"
+                  className="mt-5 inline-block text-[0.72rem] tracking-[0.16em] text-accent uppercase underline underline-offset-4"
                   onClick={() => setMenu(null)}
                 >
                   View all
@@ -252,7 +252,7 @@ export function Header() {
                         className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                       />
                     </span>
-                    <span className="mt-3 block text-center text-[0.62rem] leading-snug tracking-[0.16em] text-fg uppercase group-hover:text-accent">
+                    <span className="mt-3 block text-center text-[0.7rem] leading-snug tracking-[0.14em] text-fg uppercase group-hover:text-accent">
                       {t.label}
                     </span>
                   </Link>

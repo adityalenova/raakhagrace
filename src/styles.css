@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
+/*
+ * Fonts are self-hosted rather than pulled from fonts.googleapis.com. That
+ * external stylesheet was render-blocking: on a slow connection the page sat
+ * blank until it arrived, which is what "the text gets stuck" looked like.
+ * Six woff2 files, latin subset, ~112 KB total, served from our own origin.
+ */
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/cormorant-garamond-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/cormorant-garamond-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/cormorant-garamond-latin-500-italic.woff2") format("woff2");
+}
+
 @theme {
   --color-bg: #fff3ec;
   --color-paper: #fbe1d2;

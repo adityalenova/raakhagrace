@@ -73,9 +73,14 @@ export const NAV_MENUS: NavMenu[] = [
     to: "/about",
     blurb: "Who we are, how the work gets made, and where to talk to a person.",
     tiles: [
-      { label: "The Atelier", to: "/about", image: "/images/nav-atelier.jpg" },
+      { label: "The Atelier", to: "/about", image: "/images/nav-craft.jpg" },
       { label: "The Journal", to: "/blog", image: "/images/hero-woman.jpg" },
-      { label: "Community", to: "/community", image: "/images/checkout-model.jpg" },
+      {
+        label: "Community",
+        to: "/community",
+        // A customer wearing a piece, not the checkout model again.
+        image: "/images/nav-community.jpg",
+      },
     ],
   },
 ];
