@@ -7,13 +7,14 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2">
-            <LotusMark className="h-8 w-8 text-ink-fg" />
+            <LotusMark className="h-8" />
             <Link to="/" className="font-display text-xl tracking-[0.16em]">
               RAAKHA GRACE
             </Link>
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-muted">
-            Handmade craft, premium beads, and jewellery light enough for every occasion. An independent atelier — the lotus is our only mark.
+            Handmade craft, premium beads, and jewellery light enough for every occasion. An
+            independent atelier — the lotus is our only mark.
           </p>
         </div>
         <div>
@@ -100,12 +101,22 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <a href="https://www.instagram.com/raakhagrace/" target="_blank" rel="noreferrer" className="hover:text-accent">
+              <a
+                href="https://www.instagram.com/raakhagrace/"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-accent"
+              >
                 Instagram
               </a>
             </li>
             <li>
-              <a href="https://wa.me/6304837120" target="_blank" rel="noreferrer" className="hover:text-accent">
+              <a
+                href="https://wa.me/6304837120"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-accent"
+              >
                 WhatsApp · 6304837120
               </a>
             </li>

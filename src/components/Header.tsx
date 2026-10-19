@@ -40,7 +40,12 @@ export function Header() {
     const t = q.trim().toLowerCase();
     if (t.length < 2) return [];
     return catalog
-      .filter((p) => p.name.toLowerCase().includes(t) || p.category.includes(t) || p.sku.toLowerCase().includes(t))
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(t) ||
+          p.category.includes(t) ||
+          p.sku.toLowerCase().includes(t),
+      )
       .slice(0, 6);
   }, [q, catalog]);
 
@@ -61,8 +66,13 @@ export function Header() {
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
 
   const brand = (
-    <Link to="/" className="flex min-w-0 items-center gap-2.5 text-fg" aria-label="Raakha Grace home" onClick={() => setOpen(false)}>
-      <LotusMark className="h-9 w-9 shrink-0" />
+    <Link
+      to="/"
+      className="flex min-w-0 items-center gap-2.5 text-fg"
+      aria-label="Raakha Grace home"
+      onClick={() => setOpen(false)}
+    >
+      <LotusMark className="h-9" />
       <span className="font-display text-lg tracking-[0.16em] sm:text-[1.35rem]">RAAKHA GRACE</span>
     </Link>
   );
@@ -92,7 +102,12 @@ export function Header() {
           <User className="h-5 w-5" />
         </Link>
       )}
-      <Link to="/cart" className="relative grid h-11 w-11 place-items-center text-fg" aria-label="Cart" onClick={() => setOpen(false)}>
+      <Link
+        to="/cart"
+        className="relative grid h-11 w-11 place-items-center text-fg"
+        aria-label="Cart"
+        onClick={() => setOpen(false)}
+      >
         <ShoppingBag className="h-5 w-5" />
         {count > 0 && (
           <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-fg px-1 text-[10px] text-bg">
@@ -103,72 +118,73 @@ export function Header() {
     </div>
   );
 
-  const menu = open && mounted
-    ? createPortal(
-        <div className="fixed inset-0 z-[60] flex flex-col bg-surface xl:hidden">
-          <p className="bg-ink px-3 py-2 text-center text-[0.62rem] leading-snug tracking-[0.22em] text-ink-fg uppercase">
-            Handmade with heart · Free shipping across India
-          </p>
-          <div className="flex h-16 items-center justify-between gap-3 border-b border-line px-4 sm:h-[4.5rem] sm:px-6">
-            <button
-              type="button"
-              className="grid h-11 w-11 place-items-center text-fg"
-              aria-label="Close menu"
-              onClick={() => setOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </button>
-            {brand}
-            {account}
-          </div>
-          <nav className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 pt-2">
-            {SHOP.map((n) => (
-              <Link
-                key={n.label}
-                to={n.to}
-                className="block border-b border-line/70 py-4 font-display text-[1.65rem] tracking-[0.14em] uppercase"
+  const menu =
+    open && mounted
+      ? createPortal(
+          <div className="fixed inset-0 z-[60] flex flex-col bg-surface xl:hidden">
+            <p className="bg-ink px-3 py-2 text-center text-[0.62rem] leading-snug tracking-[0.22em] text-ink-fg uppercase">
+              Handmade with heart · Free shipping across India
+            </p>
+            <div className="flex h-16 items-center justify-between gap-3 border-b border-line px-4 sm:h-[4.5rem] sm:px-6">
+              <button
+                type="button"
+                className="grid h-11 w-11 place-items-center text-fg"
+                aria-label="Close menu"
                 onClick={() => setOpen(false)}
               >
-                {n.label}
-              </Link>
-            ))}
-            <Accordion
-              label="Collections"
-              open={expanded === "collections"}
-              onToggle={() => setExpanded((v) => (v === "collections" ? null : "collections"))}
-            >
-              {COLLECTIONS.map((n) => (
+                <X className="h-5 w-5" />
+              </button>
+              {brand}
+              {account}
+            </div>
+            <nav className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 pt-2">
+              {SHOP.map((n) => (
                 <Link
                   key={n.label}
                   to={n.to}
-                  className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
+                  className="block border-b border-line/70 py-4 font-display text-[1.65rem] tracking-[0.14em] uppercase"
                   onClick={() => setOpen(false)}
                 >
                   {n.label}
                 </Link>
               ))}
-            </Accordion>
-            <Accordion
-              label="The House"
-              open={expanded === "house"}
-              onToggle={() => setExpanded((v) => (v === "house" ? null : "house"))}
-            >
-              {HOUSE.map((n) => (
-                <Link
-                  key={n.label}
-                  to={n.to}
-                  className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
-                  onClick={() => setOpen(false)}
-                >
-                  {n.label}
-                </Link>
-              ))}
-            </Accordion>
-          </nav>
-        </div>,
-        document.body,
-      )
-    : null;
+              <Accordion
+                label="Collections"
+                open={expanded === "collections"}
+                onToggle={() => setExpanded((v) => (v === "collections" ? null : "collections"))}
+              >
+                {COLLECTIONS.map((n) => (
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
+                    onClick={() => setOpen(false)}
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+              </Accordion>
+              <Accordion
+                label="The House"
+                open={expanded === "house"}
+                onToggle={() => setExpanded((v) => (v === "house" ? null : "house"))}
+              >
+                {HOUSE.map((n) => (
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    className="block py-2 text-sm tracking-[0.16em] text-muted uppercase"
+                    onClick={() => setOpen(false)}
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+              </Accordion>
+            </nav>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md">
@@ -190,12 +206,24 @@ export function Header() {
 
           <nav className="hidden items-center gap-6 text-[0.65rem] font-medium tracking-[0.18em] uppercase text-fg xl:flex">
             {SHOP.map((n) => (
-              <Link key={n.label} to={n.to} className={isActive(n.to) ? "text-accent" : "hover:text-accent"}>
+              <Link
+                key={n.label}
+                to={n.to}
+                className={isActive(n.to) ? "text-accent" : "hover:text-accent"}
+              >
                 {n.label}
               </Link>
             ))}
-            <DesktopGroup label="Collections" items={COLLECTIONS} active={COLLECTIONS.some((i) => isActive(i.to))} />
-            <DesktopGroup label="The House" items={HOUSE} active={HOUSE.some((i) => isActive(i.to))} />
+            <DesktopGroup
+              label="Collections"
+              items={COLLECTIONS}
+              active={COLLECTIONS.some((i) => isActive(i.to))}
+            />
+            <DesktopGroup
+              label="The House"
+              items={HOUSE}
+              active={HOUSE.some((i) => isActive(i.to))}
+            />
           </nav>
 
           {account}
@@ -278,14 +306,20 @@ function DesktopGroup({
 }) {
   return (
     <div className="group relative">
-      <span className={`inline-flex cursor-default items-center gap-1 ${active ? "text-accent" : "hover:text-accent"}`}>
+      <span
+        className={`inline-flex cursor-default items-center gap-1 ${active ? "text-accent" : "hover:text-accent"}`}
+      >
         {label}
         <ChevronDown className="h-3 w-3" />
       </span>
       <div className="invisible absolute left-1/2 top-full z-50 min-w-44 -translate-x-1/2 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
         <div className="rounded-md border border-line bg-surface py-2 shadow-lg">
           {items.map((n) => (
-            <Link key={n.label} to={n.to} className="block px-4 py-2 text-[0.65rem] tracking-[0.16em] uppercase hover:text-accent">
+            <Link
+              key={n.label}
+              to={n.to}
+              className="block px-4 py-2 text-[0.65rem] tracking-[0.16em] uppercase hover:text-accent"
+            >
               {n.label}
             </Link>
           ))}

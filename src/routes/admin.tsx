@@ -27,7 +27,7 @@ function Page() {
     return (
       <SiteShell>
         <main className="mx-auto max-w-md px-4 py-16">
-          <LotusMark className="h-10 w-10" />
+          <LotusMark className="h-10" />
           <h1 className="mt-4 font-display text-4xl">Atelier admin</h1>
           <p className="mt-2 text-sm text-muted">
             {status.email

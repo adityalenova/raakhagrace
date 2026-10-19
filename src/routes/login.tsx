@@ -98,7 +98,7 @@ function Login() {
 
       <div className="flex flex-col justify-center bg-bg px-6 py-14 sm:px-12 lg:px-16">
         <Link to="/" className="mb-8 flex items-center gap-2.5 text-fg">
-          <LotusMark className="h-9 w-9" />
+          <LotusMark className="h-9" />
           <span className="font-display text-xl tracking-[0.16em]">RAAKHA GRACE</span>
         </Link>
 
