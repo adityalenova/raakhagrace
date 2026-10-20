@@ -5,7 +5,7 @@ import { LotusMark } from "./LotusMark";
 export function Footer() {
   return (
     <footer className="bg-ink text-ink-fg">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-6">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2">
             <LotusMark className="h-8" />
@@ -18,7 +18,7 @@ export function Footer() {
             independent atelier — the lotus is our only mark.
           </p>
           {/* Instagram and WhatsApp live here as icons, not as links in the
-              Policies column — they are how you reach us, not a policy. */}
+              Legal column — they are how you reach us, not a policy. */}
           <div className="mt-6 flex items-center gap-3">
             <a
               href={INSTAGRAM_LINK}
@@ -93,38 +93,68 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/community" hash="contact" className="hover:text-accent">
-                Contact
+              <Link to="/affiliations" className="hover:text-accent">
+                Affiliations
               </Link>
             </li>
           </ul>
         </div>
         <div>
-          <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-ink-muted">Policies</h3>
+          <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-ink-muted">Help</h3>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
-              <Link to="/privacy" className="hover:text-accent">
-                Privacy Policy
+              <Link to="/faq" className="hover:text-accent">
+                Questions
               </Link>
             </li>
+            <li>
+              <Link to="/reach-information" className="hover:text-accent">
+                Reach &amp; information
+              </Link>
+            </li>
+            <li>
+              <Link to="/community" hash="contact" className="hover:text-accent">
+                Contact
+              </Link>
+            </li>
+            <li>
+              <Link to="/dashboard" className="hover:text-accent">
+                Your account
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin" className="hover:text-accent">
+                Atelier admin
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-ink-muted">Legal</h3>
+          <ul className="mt-4 space-y-2 text-sm">
             <li>
               <Link to="/terms" className="hover:text-accent">
                 Terms of Service
               </Link>
             </li>
             <li>
-              <Link to="/cookies" className="hover:text-accent">
-                Cookie Policy
+              <Link to="/privacy" className="hover:text-accent">
+                Privacy Policy
               </Link>
             </li>
             <li>
-              <Link to="/affiliations" className="hover:text-accent">
-                Affiliations
+              <Link to="/data-protection" className="hover:text-accent">
+                Data protection
               </Link>
             </li>
             <li>
-              <Link to="/admin" className="hover:text-accent">
-                Atelier admin
+              <Link to="/cookie-information" className="hover:text-accent">
+                Cookie information
+              </Link>
+            </li>
+            <li>
+              <Link to="/code-of-conduct" className="hover:text-accent">
+                Code of conduct
               </Link>
             </li>
           </ul>

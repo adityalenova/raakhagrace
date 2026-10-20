@@ -283,6 +283,113 @@
   font-family: var(--font-display);
   font-size: 1.5rem;
   color: var(--color-fg);
+  scroll-margin-top: 6rem;
+}
+.prose-legal ol {
+  margin-top: 0.75rem;
+  list-style: decimal;
+  padding-left: 1.3rem;
+}
+.prose-legal li {
+  margin-top: 0.35rem;
+}
+.prose-legal strong {
+  color: var(--color-fg);
+  font-weight: 500;
+}
+.prose-legal em {
+  color: var(--color-fg);
+}
+/* Cookie and contact tables. `not-prose` on the wrapper keeps the list rules
+   from bleeding into cell content. */
+.prose-legal table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.prose-legal caption {
+  margin-bottom: 0.6rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+  text-align: left;
+}
+.prose-legal th {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-fg);
+  text-align: left;
+  white-space: nowrap;
+}
+.prose-legal td {
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+}
+.prose-legal tbody tr:last-child td {
+  border-bottom: 0;
+}
+/* A cookie name is the one thing on these pages that must stay readable in one
+   piece: squeezing `__Host-grok-auth.session_token` into a 72px column breaks it
+   into four unreadable fragments. This wrapper lets that table slide sideways
+   instead — the page never overflows, only the table. */
+.prose-legal .table-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+.prose-legal .table-scroll > table {
+  min-width: 33rem;
+  margin-top: 0;
+}
+.prose-legal .table-scroll code {
+  white-space: nowrap;
+}
+/* Three-column policy tables are the one thing that cannot shrink to a 390px
+   phone, so on small screens the headers and cells wrap instead of pushing the
+   page sideways. Unlayered, which is what lets it beat Tailwind's
+   `whitespace-nowrap` utility on the lifespan cells. */
+@media (max-width: 30rem) {
+  .prose-legal th,
+  .prose-legal td {
+    padding: 0.5rem 0.4rem;
+    white-space: normal;
+  }
+  .prose-legal th {
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+  }
+  .prose-legal table {
+    font-size: 0.74rem;
+  }
+}
+
+/* FAQ accordions — a plus that becomes a cross when the native <details> opens. */
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.faq-item summary:hover {
+  color: var(--color-accent);
+}
+.faq-item .lucide-plus {
+  transition: transform 0.2s ease;
+}
+.faq-item[open] .lucide-plus {
+  transform: rotate(45deg);
+}
+.faq-item[open] summary {
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-item .lucide-plus {
+    transition: none;
+  }
 }
 .prose-legal h3 {
   margin-top: 1.25rem;

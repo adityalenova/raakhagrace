@@ -16,15 +16,20 @@ import { Route as AffiliationsRouteImport } from './routes/affiliations'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CodeOfConductRouteImport } from './routes/code-of-conduct'
 import { Route as CommunityRouteImport } from './routes/community'
+import { Route as CookieInformationRouteImport } from './routes/cookie-information'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as DailyWearRouteImport } from './routes/daily-wear'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DataProtectionRouteImport } from './routes/data-protection'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as JewelleryRouteImport } from './routes/jewellery'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrnamentsRouteImport } from './routes/ornaments'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ReachInformationRouteImport } from './routes/reach-information'
 import { Route as SpecialsRouteImport } from './routes/specials'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -67,9 +72,19 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodeOfConductRoute = CodeOfConductRouteImport.update({
+  id: '/code-of-conduct',
+  path: '/code-of-conduct',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunityRoute = CommunityRouteImport.update({
   id: '/community',
   path: '/community',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookieInformationRoute = CookieInformationRouteImport.update({
+  id: '/cookie-information',
+  path: '/cookie-information',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookiesRoute = CookiesRouteImport.update({
@@ -85,6 +100,16 @@ const DailyWearRoute = DailyWearRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataProtectionRoute = DataProtectionRouteImport.update({
+  id: '/data-protection',
+  path: '/data-protection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiftsRoute = GiftsRouteImport.update({
@@ -110,6 +135,11 @@ const OrnamentsRoute = OrnamentsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReachInformationRoute = ReachInformationRouteImport.update({
+  id: '/reach-information',
+  path: '/reach-information',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SpecialsRoute = SpecialsRouteImport.update({
@@ -151,15 +181,20 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/code-of-conduct': typeof CodeOfConductRoute
   '/community': typeof CommunityRoute
+  '/cookie-information': typeof CookieInformationRoute
   '/cookies': typeof CookiesRoute
   '/daily-wear': typeof DailyWearRoute
   '/dashboard': typeof DashboardRoute
+  '/data-protection': typeof DataProtectionRoute
+  '/faq': typeof FaqRoute
   '/gifts': typeof GiftsRoute
   '/jewellery': typeof JewelleryRoute
   '/login': typeof LoginRoute
   '/ornaments': typeof OrnamentsRoute
   '/privacy': typeof PrivacyRoute
+  '/reach-information': typeof ReachInformationRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -175,15 +210,20 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/code-of-conduct': typeof CodeOfConductRoute
   '/community': typeof CommunityRoute
+  '/cookie-information': typeof CookieInformationRoute
   '/cookies': typeof CookiesRoute
   '/daily-wear': typeof DailyWearRoute
   '/dashboard': typeof DashboardRoute
+  '/data-protection': typeof DataProtectionRoute
+  '/faq': typeof FaqRoute
   '/gifts': typeof GiftsRoute
   '/jewellery': typeof JewelleryRoute
   '/login': typeof LoginRoute
   '/ornaments': typeof OrnamentsRoute
   '/privacy': typeof PrivacyRoute
+  '/reach-information': typeof ReachInformationRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -200,15 +240,20 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/code-of-conduct': typeof CodeOfConductRoute
   '/community': typeof CommunityRoute
+  '/cookie-information': typeof CookieInformationRoute
   '/cookies': typeof CookiesRoute
   '/daily-wear': typeof DailyWearRoute
   '/dashboard': typeof DashboardRoute
+  '/data-protection': typeof DataProtectionRoute
+  '/faq': typeof FaqRoute
   '/gifts': typeof GiftsRoute
   '/jewellery': typeof JewelleryRoute
   '/login': typeof LoginRoute
   '/ornaments': typeof OrnamentsRoute
   '/privacy': typeof PrivacyRoute
+  '/reach-information': typeof ReachInformationRoute
   '/specials': typeof SpecialsRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -226,15 +271,20 @@ export interface FileRouteTypes {
     | '/blog'
     | '/cart'
     | '/checkout'
+    | '/code-of-conduct'
     | '/community'
+    | '/cookie-information'
     | '/cookies'
     | '/daily-wear'
     | '/dashboard'
+    | '/data-protection'
+    | '/faq'
     | '/gifts'
     | '/jewellery'
     | '/login'
     | '/ornaments'
     | '/privacy'
+    | '/reach-information'
     | '/specials'
     | '/terms'
     | '/auth/callback'
@@ -250,15 +300,20 @@ export interface FileRouteTypes {
     | '/blog'
     | '/cart'
     | '/checkout'
+    | '/code-of-conduct'
     | '/community'
+    | '/cookie-information'
     | '/cookies'
     | '/daily-wear'
     | '/dashboard'
+    | '/data-protection'
+    | '/faq'
     | '/gifts'
     | '/jewellery'
     | '/login'
     | '/ornaments'
     | '/privacy'
+    | '/reach-information'
     | '/specials'
     | '/terms'
     | '/auth/callback'
@@ -274,15 +329,20 @@ export interface FileRouteTypes {
     | '/blog'
     | '/cart'
     | '/checkout'
+    | '/code-of-conduct'
     | '/community'
+    | '/cookie-information'
     | '/cookies'
     | '/daily-wear'
     | '/dashboard'
+    | '/data-protection'
+    | '/faq'
     | '/gifts'
     | '/jewellery'
     | '/login'
     | '/ornaments'
     | '/privacy'
+    | '/reach-information'
     | '/specials'
     | '/terms'
     | '/auth/callback'
@@ -299,15 +359,20 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  CodeOfConductRoute: typeof CodeOfConductRoute
   CommunityRoute: typeof CommunityRoute
+  CookieInformationRoute: typeof CookieInformationRoute
   CookiesRoute: typeof CookiesRoute
   DailyWearRoute: typeof DailyWearRoute
   DashboardRoute: typeof DashboardRoute
+  DataProtectionRoute: typeof DataProtectionRoute
+  FaqRoute: typeof FaqRoute
   GiftsRoute: typeof GiftsRoute
   JewelleryRoute: typeof JewelleryRoute
   LoginRoute: typeof LoginRoute
   OrnamentsRoute: typeof OrnamentsRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReachInformationRoute: typeof ReachInformationRoute
   SpecialsRoute: typeof SpecialsRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -366,11 +431,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/code-of-conduct': {
+      id: '/code-of-conduct'
+      path: '/code-of-conduct'
+      fullPath: '/code-of-conduct'
+      preLoaderRoute: typeof CodeOfConductRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/community': {
       id: '/community'
       path: '/community'
       fullPath: '/community'
       preLoaderRoute: typeof CommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie-information': {
+      id: '/cookie-information'
+      path: '/cookie-information'
+      fullPath: '/cookie-information'
+      preLoaderRoute: typeof CookieInformationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookies': {
@@ -392,6 +471,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-protection': {
+      id: '/data-protection'
+      path: '/data-protection'
+      fullPath: '/data-protection'
+      preLoaderRoute: typeof DataProtectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gifts': {
@@ -427,6 +520,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reach-information': {
+      id: '/reach-information'
+      path: '/reach-information'
+      fullPath: '/reach-information'
+      preLoaderRoute: typeof ReachInformationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/specials': {
@@ -492,15 +592,20 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  CodeOfConductRoute: CodeOfConductRoute,
   CommunityRoute: CommunityRoute,
+  CookieInformationRoute: CookieInformationRoute,
   CookiesRoute: CookiesRoute,
   DailyWearRoute: DailyWearRoute,
   DashboardRoute: DashboardRoute,
+  DataProtectionRoute: DataProtectionRoute,
+  FaqRoute: FaqRoute,
   GiftsRoute: GiftsRoute,
   JewelleryRoute: JewelleryRoute,
   LoginRoute: LoginRoute,
   OrnamentsRoute: OrnamentsRoute,
   PrivacyRoute: PrivacyRoute,
+  ReachInformationRoute: ReachInformationRoute,
   SpecialsRoute: SpecialsRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,

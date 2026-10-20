@@ -1,23 +1,42 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
   Boxes,
   CircleDollarSign,
   ClipboardList,
+  Clock,
+  Users,
   MessageCircle,
   Package,
   PencilLine,
   Plus,
   RefreshCw,
   Search,
+  ShieldCheck,
   Undo2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { LotusMark } from "@/components/LotusMark";
 import { SiteShell } from "@/components/SiteShell";
 import { adminStatus } from "@/lib/auth-status";
 import { signOut } from "@/lib/auth/client";
+import {
+  adminAnalytics,
+  adminUsers,
+  type Analytics,
+  type UserRoster,
+} from "@/lib/admin-insights";
 import { useCatalog, useProductList } from "@/lib/catalog-store";
 import {
   BOOKING_STATUSES,
@@ -48,13 +67,34 @@ const COLLECTION_TABS = [
 const VIEWS = [
   { key: "products", label: "Products", icon: Boxes },
   { key: "bookings", label: "Order desk", icon: ClipboardList },
+  { key: "analytics", label: "Analytics", icon: BarChart3 },
+  { key: "users", label: "Sign-ups", icon: Users },
 ] as const;
+
+type ViewKey = (typeof VIEWS)[number]["key"];
+
+/** What each desk is, and one line on how to read it. */
+const VIEW_META: Record<ViewKey, { title: string; note: string }> = {
+  products: { title: "Product dashboard", note: "· edits save to this browser" },
+  bookings: {
+    title: "Order desk",
+    note: "· booking status you set here is what the customer sees",
+  },
+  analytics: {
+    title: "Bench analytics",
+    note: "· counted from sign-ups and bookings in our own database — no visitor tracking",
+  },
+  users: {
+    title: "Sign-ups",
+    note: "· who has an account, how they got in, and what they have booked",
+  },
+};
 
 type DeskRow = Booking & { contactEmail: string | null };
 
 function Page() {
   const status = Route.useLoaderData();
-  const [view, setView] = useState<(typeof VIEWS)[number]["key"]>("products");
+  const [view, setView] = useState<ViewKey>("products");
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<(typeof COLLECTION_TABS)[number]["key"]>("all");
@@ -126,13 +166,10 @@ function Page() {
                 Atelier control
               </p>
               <h1 className="mt-3 font-display text-4xl text-ink-fg sm:text-5xl">
-                {view === "bookings" ? "Order desk" : "Product dashboard"}
+                {VIEW_META[view].title}
               </h1>
               <p className="mt-2 text-sm text-ink-muted">
-                {status.email ?? "Signed in"}
-                {view === "bookings"
-                  ? " · booking status you set here is what the customer sees"
-                  : " · edits save to this browser"}
+                {status.email ?? "Signed in"} · {VIEW_META[view].note}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -174,7 +211,11 @@ function Page() {
         </section>
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          {view === "bookings" ? (
+          {view === "analytics" ? (
+            <AnalyticsPanel />
+          ) : view === "users" ? (
+            <UsersPanel />
+          ) : view === "bookings" ? (
             <BookingDesk />
           ) : (
             <>
@@ -964,5 +1005,552 @@ function Editor({
         </button>
       </div>
     </form>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Analytics and sign-ups.
+ *
+ * Both read through a `requireAdmin()` server function, so the numbers are the
+ * database's, not a browser's. Neither one pretends to be visitor analytics:
+ * this site drops no tracking cookie, so what is counted here is who signed up
+ * and what they booked — which is what a bench of this size decides with.
+ * ------------------------------------------------------------------ */
+
+function Panel({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl">{title}</h2>
+          {note ? <p className="mt-1 text-xs text-subtle">{note}</p> : null}
+        </div>
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function PanelState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="-mt-6 rounded-xl border border-dashed border-line px-6 py-14 text-center">
+      <AlertTriangle className="mx-auto h-6 w-6 text-accent" />
+      <p className="mt-3 text-sm text-muted">{message}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-flex h-10 items-center gap-2 rounded-md border border-line px-4 text-[0.66rem] tracking-[0.14em] uppercase transition hover:border-fg"
+        >
+          <RefreshCw className="h-4 w-4" /> Try again
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** The last 30 UTC day-keys, oldest first, so a quiet day still gets a slot. */
+function last30Days() {
+  const days: string[] = [];
+  const now = Date.now();
+  for (let i = 29; i >= 0; i -= 1) {
+    days.push(new Date(now - i * 86_400_000).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+function Bars({
+  days,
+  tone = "accent",
+}: {
+  days: { day: string; count: number }[];
+  tone?: "accent" | "fg";
+}) {
+  const max = Math.max(1, ...days.map((d) => d.count));
+  const total = days.reduce((s, d) => s + d.count, 0);
+  return (
+    <div>
+      <div
+        className="flex h-28 items-end gap-[3px]"
+        role="img"
+        aria-label={`${total} across the last ${days.length} days, highest day ${max}`}
+      >
+        {days.map((d) => (
+          <div
+            key={d.day}
+            className="flex h-full flex-1 items-end"
+            title={`${d.day}: ${d.count}`}
+          >
+            <div
+              className={cn("w-full rounded-sm", tone === "accent" ? "bg-accent/70" : "bg-fg/35")}
+              style={{ height: d.count ? `${Math.max(7, (d.count / max) * 100)}%` : "2px" }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between text-[0.6rem] tracking-[0.12em] text-subtle uppercase">
+        <span>{days[0] ? days[0].day.slice(5) : ""}</span>
+        <span>{total} in 30 days</span>
+        <span>{days[days.length - 1] ? `${days[days.length - 1].day.slice(5)} · today` : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function Delta({ now, before }: { now: number; before: number }) {
+  if (!before) {
+    return (
+      <span className="text-[0.62rem] tracking-[0.12em] text-subtle uppercase">
+        no prior 30 days
+      </span>
+    );
+  }
+  const pct = Math.round(((now - before) / before) * 100);
+  const Icon = pct >= 0 ? ArrowUpRight : ArrowDownRight;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[0.68rem] tabular-nums",
+        pct >= 0 ? "text-accent" : "text-muted",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {pct >= 0 ? `+${pct}` : pct}% vs prior 30
+    </span>
+  );
+}
+
+function Share({
+  rows,
+  total,
+}: {
+  rows: { label: string; count: number; value?: number }[];
+  total: number;
+}) {
+  if (!rows.length) return <p className="text-sm text-subtle">Nothing recorded yet.</p>;
+  return (
+    <ul className="space-y-3">
+      {rows.map((r) => {
+        const pct = total ? Math.round((r.count / total) * 100) : 0;
+        return (
+          <li key={r.label}>
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="truncate">{r.label}</span>
+              <span className="shrink-0 tabular-nums text-muted">
+                {r.count}
+                {r.value ? ` · ${formatInr(r.value)}` : ""}
+                <span className="ml-2 text-[0.62rem] tracking-[0.12em] text-subtle uppercase">
+                  {pct}%
+                </span>
+              </span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
+              <div className="h-full rounded-full bg-accent/70" style={{ width: `${pct}%` }} />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+const CHANNEL_LABEL: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  site: "Placed on the site",
+};
+
+function AnalyticsPanel() {
+  const [data, setData] = useState<Analytics | null>(null);
+  const [error, setError] = useState("");
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    let live = true;
+    void adminAnalytics()
+      .then((r) => {
+        if (live) {
+          setData(r);
+          setError("");
+        }
+      })
+      .catch((err: unknown) => {
+        if (live) {
+          setData(null);
+          setError(err instanceof Error ? err.message : "Could not read the shop numbers.");
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [tick]);
+
+  if (error) return <PanelState message={error} onRetry={reload} />;
+  if (!data) {
+    return (
+      <div className="-mt-6 rounded-xl border border-dashed border-line px-6 py-14 text-center text-sm text-muted">
+        Reading sign-ups and bookings…
+      </div>
+    );
+  }
+
+  const axis = last30Days();
+  const counts = (series: { day: string; count: number }[]) => {
+    const byDay = new Map(series.map((s) => [s.day, s.count]));
+    return axis.map((day) => ({ day, count: byDay.get(day) ?? 0 }));
+  };
+  const signupDays = counts(data.signupSeries);
+  const orderDays = counts(data.orderSeries);
+  const quiet = data.people.signups === 0 && data.orders.total === 0;
+
+  const maxUnits = Math.max(1, ...data.pieces.map((p) => p.units));
+
+  return (
+    <div className="-mt-6 space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat
+          icon={Users}
+          label="Accounts"
+          value={String(data.people.signups)}
+          hint={`+${data.people.last7} this week`}
+        />
+        <Stat
+          icon={ClipboardList}
+          label="Bookings"
+          value={String(data.orders.total)}
+          hint={`${data.orders.open} still open`}
+          tone={data.orders.open ? "warn" : "ok"}
+        />
+        <Stat
+          icon={CircleDollarSign}
+          label="Booked value"
+          value={formatInr(data.orders.revenue)}
+          hint="excludes cancelled"
+        />
+        <Stat
+          icon={BarChart3}
+          label="Average order"
+          value={formatInr(data.orders.average)}
+          hint={`${data.catalogue.pieces} pieces listed`}
+        />
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Sign-ups, 30 days", now: data.growth.signups30, before: data.growth.signupsPrev30 },
+          { label: "Bookings, 30 days", now: data.growth.orders30, before: data.growth.ordersPrev30 },
+          { label: "Value, 30 days", now: data.growth.revenue30, before: data.growth.revenuePrev30, money: true },
+        ].map((c) => (
+          <div key={c.label} className="rounded-xl border border-line bg-surface p-5">
+            <p className="text-[0.66rem] tracking-[0.16em] text-muted uppercase">{c.label}</p>
+            <p className="mt-3 font-display text-3xl tabular-nums">
+              {c.money ? formatInr(c.now) : c.now}
+            </p>
+            <div className="mt-2">
+              <Delta now={c.now} before={c.before} />
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {quiet ? (
+        <PanelState
+          message={
+            "Nothing counted yet. The moment someone signs up or a booking is made on the order desk, these panels fill in — there is no visitor tracking on this site to invent numbers before that."
+          }
+          onRetry={reload}
+        />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel
+            title="Sign-ups by day"
+            note="Every account created in the last 30 days. Empty days are empty, not hidden."
+          >
+            <Bars days={signupDays} />
+          </Panel>
+          <Panel title="Bookings by day" note="Paid or booked orders, cancellations left out.">
+            <Bars days={orderDays} tone="fg" />
+          </Panel>
+
+          <Panel title="Where bookings came from" note="Channel recorded on the order row.">
+            <Share
+              total={data.orders.total}
+              rows={data.orders.byChannel.map((c) => ({
+                label: CHANNEL_LABEL[c.channel] ?? c.channel,
+                count: c.count,
+                value: c.value,
+              }))}
+            />
+          </Panel>
+
+          <Panel title="Booking pipeline" note="What the order desk is holding right now.">
+            <Share
+              total={data.orders.total}
+              rows={data.orders.byStatus.map((s) => ({
+                label: STATUS_LABEL[s.status as BookingStatus] ?? s.status,
+                count: s.count,
+                value: s.value,
+              }))}
+            />
+          </Panel>
+
+          <Panel
+            title="Pieces booked"
+            note="Units across every non-cancelled booking, top ten."
+          >
+            {data.pieces.length ? (
+              <ul className="space-y-3">
+                {data.pieces.map((p) => (
+                  <li key={p.name}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="truncate">{p.name}</span>
+                      <span className="shrink-0 tabular-nums text-muted">
+                        {p.units} {p.units === 1 ? "unit" : "units"} · {formatInr(p.value)}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
+                      <div
+                        className="h-full rounded-full bg-accent/70"
+                        style={{ width: `${Math.round((p.units / maxUnits) * 100)}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-subtle">
+                No pieces booked yet. This list builds itself from the item lines on each booking.
+              </p>
+            )}
+          </Panel>
+
+          <Panel
+            title="How people get in"
+            note="Sign-in providers on file, and what is still active."
+          >
+            <Share
+              total={data.people.signups}
+              rows={[
+                ...data.providers.map((p) => ({
+                  label: p.provider === "google" ? "Google" : p.provider,
+                  count: p.accounts,
+                })),
+                { label: "Email verified", count: data.people.verified },
+                { label: "Active in 30 days", count: data.people.active30 },
+              ]}
+            />
+          </Panel>
+        </div>
+      )}
+
+      <p className="text-[0.68rem] leading-relaxed text-subtle">
+        These counts come from the accounts, sessions and bookings in our own database. This site
+        sets no advertising or tracking cookie, so there is no page-view series to show — see{" "}
+        <Link to="/cookie-information" className="text-accent hover:underline">
+          cookie information
+        </Link>{" "}
+        and{" "}
+        <Link to="/data-protection" className="text-accent hover:underline">
+          data protection
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}
+
+function dateOf(ms: number) {
+  return new Date(ms).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function since(ms: number | null) {
+  if (!ms) return "never";
+  const days = Math.floor((Date.now() - ms) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.round(days / 30);
+  return months <= 1 ? "a month ago" : `${months} months ago`;
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function UsersPanel() {
+  const [roster, setRoster] = useState<UserRoster | null>(null);
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(
+      () => {
+        void adminUsers({ data: { query: query.trim() || undefined } })
+          .then((r) => {
+            if (live) {
+              setRoster(r);
+              setError("");
+            }
+          })
+          .catch((err: unknown) => {
+            if (live) {
+              setRoster(null);
+              setError(err instanceof Error ? err.message : "Could not load sign-ups.");
+            }
+          });
+      },
+      query.trim() ? 300 : 0,
+    );
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [query, tick]);
+
+  if (error) return <PanelState message={error} onRetry={reload} />;
+  if (!roster) {
+    return (
+      <div className="-mt-6 rounded-xl border border-dashed border-line px-6 py-14 text-center text-sm text-muted">
+        Reading accounts…
+      </div>
+    );
+  }
+
+  return (
+    <div className="-mt-6 space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat icon={Users} label="Signed up" value={String(roster.total)} />
+        <Stat
+          icon={Clock}
+          label="New this week"
+          value={String(roster.thisWeek)}
+          tone={roster.thisWeek ? "warn" : "ok"}
+        />
+        <Stat
+          icon={ShieldCheck}
+          label="Email verified"
+          value={`${roster.verified}/${roster.total}`}
+          tone={roster.verified < roster.total ? "warn" : "ok"}
+        />
+        <Stat
+          icon={Package}
+          label="Have booked"
+          value={String(roster.withOrders)}
+          hint="at least one order"
+        />
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or email"
+            className="h-12 w-full rounded-md border border-line bg-surface pl-11 pr-4 text-sm outline-none focus:border-accent"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={reload}
+          className="flex h-12 items-center gap-2 rounded-md border border-line px-4 text-[0.66rem] tracking-[0.14em] uppercase transition hover:border-fg"
+        >
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </button>
+      </div>
+
+      {roster.rows.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-line px-6 py-12 text-center text-sm text-muted">
+          {query.trim()
+            ? `No account matches “${query.trim()}”. A booking made without signing in lives on the order desk, not here.`
+            : "Nobody has signed up yet. Accounts appear here the moment a customer signs in with Google."}
+        </p>
+      ) : (
+        <ul className="overflow-hidden rounded-xl border border-line">
+          {roster.rows.map((u, i) => (
+            <li
+              key={u.id}
+              className={cn(
+                "flex flex-wrap items-center gap-4 bg-surface px-4 py-4 sm:gap-5",
+                i > 0 && "border-t border-line",
+              )}
+            >
+              {u.image ? (
+                <img
+                  src={u.image}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line bg-paper font-display text-sm">
+                  {initials(u.name) || "—"}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 truncate text-sm text-fg">
+                  {u.name}
+                  {u.verified ? (
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden="true" />
+                  ) : null}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-subtle">{u.email}</p>
+              </div>
+              <span className="rounded-full border border-line px-3 py-1 text-[0.6rem] tracking-[0.14em] text-muted uppercase">
+                {u.providers === "google" ? "Google" : u.providers}
+              </span>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted sm:grid-cols-3">
+                <span className="col-span-2 sm:col-span-1">
+                  Joined <span className="text-fg">{dateOf(u.createdMs)}</span>
+                </span>
+                <span>
+                  Seen <span className="text-fg">{since(u.lastSeenMs)}</span>
+                </span>
+                <span>
+                  Bookings <span className="text-fg tabular-nums">{u.bookings}</span>
+                </span>
+              </div>
+              <p className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {formatInr(u.spent)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-[0.68rem] leading-relaxed text-subtle">
+        Accounts appear here only when someone signs in. A customer who books straight from the cart
+        without an account is a row on the{" "}
+        <Link to="/admin" className="text-accent hover:underline">
+          order desk
+        </Link>
+        , not a sign-up — and this roster is readable only by an address on the admin allowlist. What
+        is held about each person, and for how long, is on the{" "}
+        <Link to="/data-protection" className="text-accent hover:underline">
+          data protection page
+        </Link>
+        .
+      </p>
+    </div>
   );
 }

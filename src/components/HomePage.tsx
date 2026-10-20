@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { InViewVideo } from "./InViewVideo";
+import { FaqList } from "./FaqList";
+import { FAQ_HEADLINES } from "@/lib/faqs";
 import { CATEGORIES, latestProducts, OCCASIONS } from "@/lib/products";
 import { useProductList } from "@/lib/catalog-store";
 import { ProductCard } from "./ProductCard";
@@ -15,6 +17,9 @@ export function HomePage() {
 
   return (
     <main>
+      {/* The hero is the film, by design — nothing on top of it. Screen readers
+          and search engines still need a page title, so it lives here unseen. */}
+      <h1 className="sr-only">Raakha Grace — handmade jewellery, light enough for every occasion</h1>
       <section className="relative w-full overflow-hidden bg-ink">
         <InViewVideo
           wrapperClassName="aspect-video w-full"
@@ -194,6 +199,40 @@ export function HomePage() {
               </footer>
             </blockquote>
           ))}
+        </div>
+      </section>
+
+      {/* Questions people arrive with, answered before they reach the cart —
+          the same copy as /faq, so the two can never disagree. */}
+      <section className="bg-bg py-16">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <p className="text-[0.7rem] tracking-[0.3em] text-accent uppercase">Before you order</p>
+          <h2 className="mt-3 font-display text-4xl">The questions we are asked most</h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            Short answers to the things that decide a purchase here — how an order becomes official,
+            what happens if you do not like it, and why the unboxing video matters. The{" "}
+            <Link to="/faq" className="text-accent underline underline-offset-2">
+              full list of questions
+            </Link>{" "}
+            covers shipping, sizing, care, gifts and your data.
+          </p>
+          <div className="mt-8 border-t border-line">
+            <FaqList items={FAQ_HEADLINES} />
+          </div>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              to="/faq"
+              className="rounded-full bg-fg px-5 py-3 text-[0.7rem] tracking-[0.16em] text-bg uppercase transition hover:opacity-90"
+            >
+              All questions
+            </Link>
+            <Link
+              to="/reach-information"
+              className="rounded-full border border-line px-5 py-3 text-[0.7rem] tracking-[0.16em] uppercase transition hover:border-fg"
+            >
+              Reach the atelier
+            </Link>
+          </div>
         </div>
       </section>
     </main>

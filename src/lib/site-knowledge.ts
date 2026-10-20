@@ -442,10 +442,71 @@ export const FACTS: Fact[] = [
     id: "privacy",
     ask: ["privacy", "data", "personal information", "gdpr", "cookies", "secure"],
     answer:
-      "We keep only what an order needs — your name, number, address and what you booked — and sign-in is through Google. No payment card data ever touches this site, because payment happens with us directly on WhatsApp.",
+      "We keep only what an order needs — your name, number, address and what you booked — and sign-in is through Google. No payment card data ever touches this site, because payment happens with us directly on WhatsApp. Every cookie and storage key is named on the site, and there are no advertising or tracking cookies.",
     links: [
       { label: "Privacy policy", to: "/privacy" },
-      { label: "Cookie policy", to: "/cookies" },
+      { label: "Data protection", to: "/data-protection" },
+      { label: "Cookie information", to: "/cookie-information" },
+    ],
+  },
+  {
+    id: "faq",
+    ask: [
+      "faqs",
+      "faq",
+      "frequently asked",
+      "common questions",
+      "questions answered",
+      "is there a help page",
+      "where can i read the rules",
+      "help centre",
+    ],
+    answer:
+      "There is a Questions page that answers all of it in one place — how an order becomes official, payment, delivery and tracking, the unboxing video, returns, warranty, sizing, materials, gifting and your data. Everything I say here comes from the same pages, so reading them is the same conversation, only faster.",
+    links: [
+      { label: "All questions", to: "/faq" },
+      { label: "Terms of service", to: "/terms" },
+    ],
+  },
+  {
+    id: "conduct",
+    ask: [
+      "code of conduct",
+      "conduct",
+      "ethics",
+      "your values",
+      "child labour",
+      "who makes it",
+      "are workers paid",
+      "environment",
+      "sustainability",
+      "are you ethical",
+    ],
+    answer:
+      "We publish a code of conduct — what we promise about honesty in materials, paying the hands that make each piece, telling you the inconvenient rules before you pay, treating every customer the same, and owning a mistake in one message. It is written so a customer can quote it back at us, and it is what the atelier and the workshops we place work with are held to.",
+    links: [
+      { label: "Code of conduct", to: "/code-of-conduct" },
+      { label: "Meet the atelier", to: "/about" },
+    ],
+  },
+  {
+    id: "reach",
+    ask: [
+      "where are you",
+      "your address",
+      "reach you",
+      "contact details",
+      "opening hours",
+      "who runs it",
+      "business details",
+      "gst",
+      "invoic",
+    ],
+    answer:
+      `We are a working bench in Hyderabad, Telangana — not a showroom, so there is no retail address to walk up to and no trial room. Reach us on WhatsApp at ${SITE.whatsapp} or Instagram @raakhagrace; both come to the same people, Monday to Saturday through the working day, Sunday messages read on Monday. Invoices and the atelier's trade details come with your order — ask for them before dispatch.`,
+    links: [
+      { label: "Reach & information", to: "/reach-information" },
+      { label: "About the atelier", to: "/about" },
     ],
   },
   {
@@ -567,7 +628,7 @@ Orders close on WhatsApp at ${SITE.whatsapp}. Prices in Indian rupees.
 ${priceSummary(f)}
 Made-to-order pieces take ${SITE.madeToOrder}; shipping across India is ${SITE.deliveryWindow}.
 
-SITE PAGES: /jewellery /ornaments /gifts /specials /daily-wear /about /blog /community /cart /checkout /dashboard /terms /privacy /cookies
+SITE PAGES: /jewellery /ornaments /gifts /specials /daily-wear /about /blog /community /cart /checkout /dashboard /terms /privacy /data-protection /cookie-information /code-of-conduct /reach-information /faq /affiliations
 
 WHAT THE SITE PROMISES (quote this, never invent a policy):
 ${policy}
