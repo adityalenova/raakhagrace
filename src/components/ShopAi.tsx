@@ -1,25 +1,28 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUp, MessageCircle, Sparkles, X } from "lucide-react";
+import { ArrowUp, FileText, MessageCircle, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { askShopAi } from "@/lib/ai";
 import { useCart } from "@/lib/cart-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { whatsappLink } from "@/lib/contact";
+import type { SiteLink } from "@/lib/site-knowledge";
 import { formatInr } from "@/lib/utils";
 
-type Msg = { role: "user" | "assistant"; content: string; ids?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; ids?: string[]; links?: SiteLink[] };
 
 const OPENING: Msg = {
   role: "assistant",
   content:
-    "Hello — I am Grace, I know every piece in the atelier. Tell me who it is for, the occasion, or a budget, and I will bring out a few strands. You can also ask me about sizing, shipping or how ordering works.",
+    "Hello — I am Grace. I know every piece at the bench and everything this site promises about ordering, shipping, sizing and returns. Tell me who it is for, the occasion or a budget, and I will bring out a few strands.",
 };
 
+/** One tap for each of the three things people actually come here to ask. */
 const STARTERS = [
   "Anniversary gift under ₹1,500",
   "Something light for daily wear",
-  "Pearl necklace",
+  "Can I return it if I don't like it?",
   "How does ordering work?",
+  "Is this real gold?",
 ];
 
 /** `**bold**` and newlines only — the model is told to keep it plain. */
@@ -59,18 +62,22 @@ export function ShopAi() {
     setBusy(true);
     let reply: Msg = {
       role: "assistant",
-      content: "Give me a moment — I am walking to the bench.",
+      content:
+        "Something interrupted me just then. Say it again in a word or two — an occasion, a budget, or the piece — and I will look it up.",
+      links: [{ label: "Browse the catalogue", to: "/jewellery" }],
     };
     try {
+      const lastAsk = [...messages].reverse().find((m) => m.role === "assistant");
       const res = await askShopAi({
         data: {
           message,
-          history: messages
-            .slice(-6)
-            .map((m) => ({ role: m.role, content: m.content })),
+          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+          // So "is that still available?" or "the second one" means the pieces
+          // Grace just showed rather than a fresh search.
+          focus: lastAsk?.ids ?? [],
         },
       });
-      reply = { role: "assistant", content: res.text, ids: res.ids };
+      reply = { role: "assistant", content: res.text, ids: res.ids, links: res.links };
     } finally {
       setBusy(false);
       setMessages((m) => [...m, reply]);
@@ -132,6 +139,7 @@ export function ShopAi() {
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
               <div
+                data-grace={m.role}
                 className={
                   m.role === "user"
                     ? "max-w-[80%] rounded-2xl rounded-br-sm bg-accent px-3.5 py-2.5 text-sm leading-relaxed text-white"
@@ -193,6 +201,24 @@ export function ShopAi() {
                 );
               })
             : null}
+
+          {last?.role === "assistant" && last.links?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {last.links.map((l) => (
+                <Link
+                  key={l.to}
+                  // Grace's links are computed page paths, not literals the
+                  // generated route tree can name.
+                  to={l.to as never}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-[0.72rem] text-ink-muted transition hover:border-ink-fg hover:text-ink-fg"
+                >
+                  <FileText className="h-3 w-3" />
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
 
           {!askedSomething && (
             <div className="flex flex-wrap gap-2 pt-1">
