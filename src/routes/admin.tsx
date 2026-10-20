@@ -8,6 +8,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Clock,
+  Mail,
   Users,
   MessageCircle,
   Package,
@@ -15,6 +16,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Send,
   ShieldCheck,
   Undo2,
   X,
@@ -35,6 +37,8 @@ import {
   adminAnalytics,
   adminUsers,
   type Analytics,
+  type MailReport,
+  mailCheck,
   type UserRoster,
 } from "@/lib/admin-insights";
 import { useCatalog, useProductList } from "@/lib/catalog-store";
@@ -1551,6 +1555,131 @@ function UsersPanel() {
         </Link>
         .
       </p>
+
+      <MailPanel />
     </div>
+  );
+}
+
+/**
+ * Mail delivery, stated plainly.
+ *
+ * The roster above counts unverified accounts; this says why they are
+ * unverified. The distinction matters because the two failures look identical
+ * from the storefront — Resend accepts a sandbox send for the shop's own inbox
+ * and refuses it for a customer's, so enquiries keep arriving while
+ * verification mails quietly never do.
+ */
+function MailPanel() {
+  const [report, setReport] = useState<MailReport | null>(null);
+  const [probing, setProbing] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let live = true;
+    mailCheck({ data: {} })
+      .then((r) => {
+        if (live) setReport(r);
+      })
+      .catch((err: unknown) => {
+        if (live) setError(err instanceof Error ? err.message : "Could not read mail settings.");
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  async function probe() {
+    setProbing(true);
+    setError("");
+    try {
+      setReport(await mailCheck({ data: { probe: true } }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The probe did not run.");
+    } finally {
+      setProbing(false);
+    }
+  }
+
+  const rows = report
+    ? [
+        { label: "Sender", value: report.from ?? "not set (RESEND_FROM)" },
+        { label: "Atelier inbox", value: report.inbox ?? "not set (ORDER_NOTIFY_EMAIL)" },
+        {
+          label: "API key",
+          value: report.configured ? "present" : "missing (RESEND_API_KEY)",
+        },
+      ]
+    : [];
+
+  return (
+    <Panel
+      title="Mail delivery"
+      note="Verification and welcome mails leave through here; bookings leave through WhatsApp."
+    >
+      {error ? (
+        <p className="text-sm text-accent">{error}</p>
+      ) : !report ? (
+        <p className="text-sm text-muted">Reading mail settings…</p>
+      ) : (
+        <div className="space-y-4">
+          <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-3">
+            {rows.map((r) => (
+              <div key={r.label}>
+                <dt className="text-[0.6rem] tracking-[0.14em] text-subtle uppercase">{r.label}</dt>
+                <dd className="mt-1 truncate text-sm text-fg">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {report.testSender ? (
+            <div className="flex gap-3 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+              <p className="text-sm leading-relaxed">
+                <span className="text-fg">This sender is Resend&apos;s test address.</span> It
+                delivers to the account holder&apos;s own inbox and refuses every other recipient,
+                so verification and welcome mails to customers cannot arrive — no code change fixes
+                that. Verify a domain you own at resend.com/domains, then point{" "}
+                <code className="rounded bg-paper px-1 py-0.5 text-[0.8em]">RESEND_FROM</code> at an
+                address on it.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={probe}
+              disabled={probing}
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-line px-4 text-[0.66rem] tracking-[0.14em] uppercase transition hover:border-fg disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+              {probing ? "Sending…" : "Send a test mail"}
+            </button>
+            {report.probe ? (
+              <p
+                className={cn(
+                  "flex items-center gap-2 text-sm",
+                  report.probe.ok ? "text-fg" : "text-accent",
+                )}
+              >
+                {report.probe.ok ? (
+                  <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
+                ) : (
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                )}
+                {report.probe.ok
+                  ? `Accepted for ${report.probe.to}.`
+                  : `Refused: ${report.probe.error ?? "unknown reason"}`}
+              </p>
+            ) : (
+              <p className="text-xs text-subtle">
+                Sends one message to the atelier inbox — it never mails a customer.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }

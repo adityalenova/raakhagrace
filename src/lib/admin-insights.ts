@@ -334,3 +334,67 @@ export const adminUsers = createServerFn({ method: "GET" })
       thisWeek: n(summary[0]?.this_week),
     };
   });
+
+export type MailReport = {
+  /** Key and sender both set, so the mailer will attempt a send at all. */
+  configured: boolean;
+  from: string | null;
+  inbox: string | null;
+  /**
+   * Resend's sandbox sender. It answers 403 for every recipient except the
+   * address the Resend account itself was opened with — which is exactly the
+   * shape of "verification mails never arrive": the send looks like it happened
+   * in the app, and Resend refuses it on the way out.
+   */
+  testSender: boolean;
+  /** Present only when the caller asked for a live probe. */
+  probe?: { ok: boolean; to: string; error?: string };
+};
+
+/**
+ * Can this deployment actually mail a customer?
+ *
+ * The probe sends to the atelier's own inbox — a recipient the sandbox sender
+ * does accept — so a green probe with a red `testSender` flag reads precisely:
+ * the key works, the code works, and only a verified domain stands between this
+ * shop and a verification mail that arrives.
+ */
+export const mailCheck = createServerFn({ method: "GET" })
+  .validator((input: unknown) =>
+    z.object({ probe: z.boolean().optional() }).parse((input ?? {}) as object),
+  )
+  .handler(async ({ data }): Promise<MailReport> => {
+    const { requireAdmin } = await import("@/lib/admin.server");
+    await requireAdmin();
+    const { notifyInbox, resendConfigured, resendFrom, sendEmail } = await import(
+      "@/lib/email/sender.server"
+    );
+
+    const from = resendFrom() ?? null;
+    const inbox = notifyInbox() ?? null;
+    const report: MailReport = {
+      configured: resendConfigured(),
+      from,
+      inbox,
+      testSender: /@resend\.dev>?\s*$/i.test(from ?? ""),
+    };
+
+    if (data.probe) {
+      if (!inbox) {
+        report.probe = { ok: false, to: "(no ORDER_NOTIFY_EMAIL set)" };
+        return report;
+      }
+      const result = await sendEmail({
+        to: inbox,
+        subject: "Raakha Grace — mail delivery check",
+        html:
+          "<p>This is the atelier's own delivery probe. If it arrived, the API key and the " +
+          "sender address both work; anything that still fails is a recipient problem, not a " +
+          "code problem.</p>",
+      });
+      report.probe = result.ok
+        ? { ok: true, to: inbox }
+        : { ok: false, to: inbox, error: result.error };
+    }
+    return report;
+  });
