@@ -6,6 +6,13 @@ import appCss from "../styles.css?url";
 
 const APP_NAME = "Raakha Grace";
 
+/**
+ * The page ground, duplicated here as an inline style because the stylesheet
+ * arrives a beat after the document. Kept in one constant so it cannot drift
+ * from `--color-bg` in styles.css the way three loose hex literals did.
+ */
+const PAGE_BG = "#FBE6DD";
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -16,7 +23,7 @@ export const Route = createRootRoute({
         name: "description",
         content: "Raakha Grace — handmade jewellery, light enough for every occasion.",
       },
-      { name: "theme-color", content: "#FFF3EC" },
+      { name: "theme-color", content: PAGE_BG },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Raakha Grace" },
@@ -50,13 +57,13 @@ export const Route = createRootRoute({
     <html
       lang="en"
       className="antialiased"
-      style={{ backgroundColor: "#FFF3EC" }}
+      style={{ backgroundColor: PAGE_BG }}
       suppressHydrationWarning
     >
       <head>
         <HeadContent />
       </head>
-      <body className="bg-bg text-fg" style={{ backgroundColor: "#FFF3EC", margin: 0 }}>
+      <body className="bg-bg text-fg" style={{ backgroundColor: PAGE_BG, margin: 0 }}>
         <PreviewHostBridge />
         {/*
           Page-view counting for the atelier (see /cookie-information for what it

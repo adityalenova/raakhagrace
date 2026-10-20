@@ -23,10 +23,26 @@ export const authClient = createAuthClient({
     onRequest(ctx) {
       const token = getBearerToken();
       if (token) ctx.headers.set("Authorization", `Bearer ${token}`);
+      // Better Auth's captcha plugin reads the solved Turnstile token from this
+      // exact header and verifies it server-side. Attached here rather than
+      // passed per-call because this hook is already the place a header gets
+      // added, and it only matters on the three endpoints the plugin guards.
+      if (captchaToken) ctx.headers.set("x-captcha-response", captchaToken);
       return ctx;
     },
   },
 });
+
+/**
+ * The most recently solved Turnstile token. Module-scoped because the widget
+ * solves asynchronously, well before the visitor presses the button.
+ */
+let captchaToken = "";
+
+/** Hand the solved captcha token to the auth client before submitting. */
+export function setCaptchaToken(token: string) {
+  captchaToken = token;
+}
 
 /**
  * True when sign-in UI should be shown — i.e. whenever `VITE_AUTH_ENABLED` is

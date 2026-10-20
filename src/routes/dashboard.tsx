@@ -18,6 +18,7 @@ import { LotusMark } from "@/components/LotusMark";
 import { SiteShell } from "@/components/SiteShell";
 import { UserButton } from "@/lib/auth/gates";
 import { resendVerificationEmail } from "@/lib/auth/client";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/auth/verify-gate";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useCart } from "@/lib/cart-store";
 import { useCatalog } from "@/lib/catalog-store";
@@ -127,6 +128,55 @@ function Page() {
   const needsVerification = Boolean(
     user.primaryEmail && !user.isGuest && user.emailVerified === false,
   );
+
+  // Stopped at the door rather than nudged inside: see `verify-gate.ts` for why
+  // this is a flag and not unconditional.
+  if (REQUIRE_EMAIL_VERIFICATION && needsVerification) {
+    return (
+      <SiteShell>
+        <main className="mx-auto max-w-2xl px-4 py-16 sm:py-24">
+          <LotusMark className="h-10" />
+          <h1 className="mt-5 font-display text-4xl sm:text-5xl">Confirm your email first</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Your atelier opens as soon as you tap the link we sent. Nothing is lost in the meantime
+            — your cart and saved pieces are held on this device.
+          </p>
+          <VerifyBanner email={user.primaryEmail ?? ""} />
+          {/*
+            The door has to have a second handle. Confirmation mail only reaches a
+            customer once the sender domain is verified in Resend; until then the
+            "Resend link" button above cannot succeed, and a gate with no way
+            through is just a wall. Orders run over WhatsApp regardless of whether
+            an account exists, so this is a real alternative and not a consolation.
+          */}
+          <div className="mt-8 rounded-xl border border-line bg-paper/60 p-6">
+            <h2 className="font-display text-2xl">Link never arrived?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              It happens — a filter, a typo, or our mailer still warming up on a new address. You do
+              not need an account to order: send us the piece you want and we will book it by hand.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href={whatsappLink("Namaste! I could not confirm my email on the Raakha Grace site.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-11 items-center gap-2 rounded-md bg-fg px-5 text-[0.7rem] tracking-[0.16em] text-bg uppercase transition hover:opacity-90"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Write to us on WhatsApp
+              </a>
+              <Link
+                to="/login"
+                className="flex h-11 items-center rounded-md border border-line px-5 text-[0.7rem] tracking-[0.16em] uppercase transition hover:border-fg"
+              >
+                Sign in another way
+              </Link>
+            </div>
+          </div>
+        </main>
+      </SiteShell>
+    );
+  }
 
   return (
     <SiteShell>
@@ -491,8 +541,13 @@ function VerifyBanner({ email }: { email: string }) {
       setState("sent");
       setNote(`A fresh confirmation link is on its way to ${email}.`);
     } else {
+      // `res.error` is the upstream text — a Resend status line and a JSON body.
+      // It is worth logging, not worth showing: a customer cannot act on
+      // `Resend 422: {"name":"validation_error"}`, and it reads as the site
+      // breaking rather than as a mailer that has not been given a domain yet.
+      console.warn("[verify] resend failed", res.error);
       setState("error");
-      setNote(res.error);
+      setNote("That link could not be sent just now. Message us on WhatsApp and we will sort it out.");
     }
   }
 

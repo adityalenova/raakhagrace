@@ -32,7 +32,10 @@ export function notifyInbox(): string | undefined {
 export function adminEmails(): string[] {
   return (env("ADMIN_EMAILS") ?? "")
     .split(",")
-    .map((entry) => entry.trim().toLowerCase())
+    // Allowlists are typed into a dashboard by hand, and a stray pair of quotes
+    // around an address silently denies its owner — `/admin` says "not on the
+    // allowlist" rather than "your config has a typo". Drop them here.
+    .map((entry) => entry.trim().replace(/^"(.*)"$/, "$1").trim().toLowerCase())
     .filter(Boolean);
 }
 

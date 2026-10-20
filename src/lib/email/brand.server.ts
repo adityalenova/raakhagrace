@@ -4,7 +4,9 @@
  *
  * Layout is table-based with inline styles because mail clients strip
  * `<style>` blocks and class selectors; the palette mirrors `src/styles.css`
- * (peach `#FFF3EC`, brown `#5B3623`, terracotta `#A8532A`, line `#F4D8C7`).
+ * (peach-pink `#FBE6DD`, brown `#5B3623`, terracotta `#A8532A`, line `#F0CDBD`).
+ * Change the theme there and change these to match — mail clients cannot read
+ * the stylesheet, so the two drift silently if nobody remembers.
  *
  * NEVER import this from client code.
  */
@@ -16,11 +18,11 @@ const escapeHtml = (value: string): string =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
   );
 
-const BG = "#FFF3EC";
+const BG = "#FBE6DD";
 const CARD = "#FFFFFF";
-const LINE = "#F4D8C7";
+const LINE = "#F0CDBD";
 const INK = "#5B3623";
-const MUTED = "#8B6752";
+const MUTED = "#7D5A45";
 const ACCENT = "#A8532A";
 
 const SERIF = "Georgia,'Times New Roman',serif";

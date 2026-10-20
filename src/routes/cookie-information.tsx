@@ -66,7 +66,7 @@ const STORAGE: { name: string; where: string; what: string }[] = [
   {
     name: "rg-guest-session",
     where: "sessionStorage",
-    what: "A temporary, local-only id for “continue as guest”, so a cart and a booking reference can be tied to your visit without an account. Contains no name, email or phone number.",
+    what: "Held the temporary, local-only id for “continue as guest”. That option has been withdrawn from the sign-in page, so the shop no longer writes this key; it is listed because a tab opened before the change may still carry one, and it clears when the tab closes.",
   },
   {
     name: "grok-auth.bearer-token",
@@ -149,8 +149,6 @@ function Page() {
         kicker="Your data"
         updated="20 October 2026"
         wide
-        image="/images/nav-atelier.jpg"
-        imageAlt="The Raakha Grace workroom"
         toc={[
           { href: "#summary", label: "The short version" },
           { href: "#categories", label: "Which categories we use" },

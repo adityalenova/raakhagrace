@@ -30,7 +30,7 @@
  * a verified id via `@/lib/auth/middleware`.
  */
 import { betterAuth } from "better-auth";
-import { bearer, genericOAuth } from "better-auth/plugins";
+import { bearer, captcha, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
@@ -40,6 +40,7 @@ import { emailAndPasswordEnabled } from "./email-password";
 import { resendConfigured, sendEmail } from "../email/sender.server";
 import { sendVerificationMail, sendWelcomeMail } from "../email/brand.server";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
+import { captchaRequired, turnstileSecretKey } from "./turnstile.server";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
 import { GROK_ISSUER_DEFAULT, PREVIEW_ALLOWED_HOSTS } from "./preview";
@@ -370,6 +371,22 @@ export const auth = betterAuth({
     // fires when an Authorization header is present, so the cookie path
     // (deployed apps) is unaffected.
     bearer(),
+
+    // Cloudflare Turnstile, when this deploy has BOTH keys. Better Auth's plugin
+    // intercepts `/sign-up/email`, `/sign-in/email` and `/request-password-reset`
+    // and requires an `x-captcha-response` header it verifies against
+    // Cloudflare — so the check is enforced at the endpoint, not merely hidden in
+    // the UI. Absent either key, these endpoints stay open exactly as before:
+    // enforcing on the secret alone would lock the form behind a widget the
+    // browser was never given a site key to render.
+    ...(captchaRequired()
+      ? [
+          captcha({
+            provider: "cloudflare-turnstile",
+            secretKey: turnstileSecretKey() as string,
+          }),
+        ]
+      : []),
 
     // Bridges Better Auth's Set-Cookie into TanStack Start responses. MUST be
     // last so it runs after every other plugin's hooks.

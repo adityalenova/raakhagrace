@@ -50,17 +50,23 @@
 }
 
 @theme {
-  --color-bg: #fff3ec;
-  --color-paper: #fbe1d2;
-  --color-surface: #fffbf8;
+  /*
+    The page ground is the poster's peach-pink, not the old near-cream. Deepening
+    `bg` costs contrast, so `muted` and `subtle` were pulled down with it: brown
+    on #FBE6DD clears 8.7:1 and the secondary text 5.1:1, where leaving them at
+    their old values would have dropped body copy just under the 4.5:1 AA line.
+  */
+  --color-bg: #fbe6dd;
+  --color-paper: #f7d7c8;
+  --color-surface: #fffaf7;
   --color-fg: #5b3623;
-  --color-muted: #8b6752;
-  --color-subtle: #b9937c;
-  --color-line: #f4d8c7;
+  --color-muted: #7d5a45;
+  --color-subtle: #a67c62;
+  --color-line: #f0cdbd;
   --color-accent: #a8532a;
-  --color-accent-fg: #fff3ec;
+  --color-accent-fg: #fbe6dd;
   --color-ink: #3c2317;
-  --color-ink-fg: #fbe1d2;
+  --color-ink-fg: #f7d7c8;
   --color-ink-muted: #c9a086;
   --color-danger: #9b3d3d;
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
@@ -74,7 +80,7 @@
 @layer base {
   /* critical-bg */
   html {
-    background-color: #fff3ec;
+    background-color: var(--color-bg);
     color-scheme: only light;
   }
   html {
@@ -88,7 +94,7 @@
   }
   body {
     margin: 0;
-    background: #fff3ec !important;
+    background: var(--color-bg) !important;
     color: var(--color-fg);
     font-family: var(--font-sans);
     overflow-x: hidden;

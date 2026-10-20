@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { LotusMark } from "@/components/LotusMark";
-import { authClient, signInWithGoogle } from "@/lib/auth/client";
-import { notifyGuestChange } from "@/lib/auth/use-current-user";
-import { startGuestSession } from "@/lib/auth/guest";
+import { Turnstile } from "@/components/Turnstile";
+import { authClient, setCaptchaToken, signInWithGoogle } from "@/lib/auth/client";
+import { turnstileConfigured } from "@/lib/auth/turnstile";
 import { getSignInStatus } from "@/lib/auth-status";
 
 export const Route = createFileRoute("/login")({
@@ -14,7 +14,11 @@ export const Route = createFileRoute("/login")({
 });
 
 /**
- * Sign-in page: Google (direct OAuth), local email/password, and guest.
+ * Sign-in page: Google (direct OAuth) and local email/password.
+ *
+ * There is no guest entry any more — every account here has to be a real,
+ * reachable address, because the dashboard is gated on verifying it. Browsing
+ * and booking stay open to anyone; only the account is signed-in.
  *
  * Each path lands in the same Better Auth session, so `/dashboard` and
  * `/checkout` read the visitor identically via `useCurrentUser()`.
@@ -27,10 +31,22 @@ function Login() {
   const [name, setName] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Solved Turnstile token, or "" before it is solved / once it has expired.
+  const [captcha, setCaptcha] = useState("");
+  const captchaNeeded = turnstileConfigured();
+
+  function onCaptcha(token: string) {
+    setCaptcha(token);
+    setCaptchaToken(token);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (captchaNeeded && !captcha) {
+      setNote("Please confirm you are human first.");
+      return;
+    }
     setBusy(true);
     setNote(null);
     try {
@@ -69,12 +85,6 @@ function Login() {
       setNote(err instanceof Error ? err.message : "Google sign-in failed.");
       setBusy(false);
     }
-  }
-
-  function onGuest() {
-    startGuestSession();
-    notifyGuestChange();
-    window.location.assign("/dashboard");
   }
 
   return (
@@ -161,9 +171,15 @@ function Login() {
                 placeholder="Password (min 8 characters)"
                 className="h-12 w-full rounded-md border border-line bg-surface px-4 text-sm outline-none focus:border-accent"
               />
+              {captchaNeeded ? (
+                <Turnstile
+                  onToken={onCaptcha}
+                  onError={() => setNote("The human check failed to load. Retry the page.")}
+                />
+              ) : null}
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || (captchaNeeded && !captcha)}
                 className="h-12 w-full rounded-md border border-fg text-sm tracking-[0.16em] uppercase transition hover:bg-fg hover:text-bg disabled:opacity-60"
               >
                 {mode === "up" ? "Create account" : "Sign in with email"}
@@ -189,20 +205,6 @@ function Login() {
             WhatsApp.
           </p>
         )}
-
-        <div className="my-7 flex items-center gap-4 text-[0.65rem] tracking-[0.22em] text-subtle uppercase">
-          <span className="h-px flex-1 bg-line" />
-          or continue lightly
-          <span className="h-px flex-1 bg-line" />
-        </div>
-
-        <button
-          type="button"
-          onClick={onGuest}
-          className="h-12 w-full rounded-md border border-line bg-surface text-sm tracking-[0.12em] text-fg transition hover:border-fg"
-        >
-          Sign in as Guest
-        </button>
 
         <Link to="/" className="mt-8 text-center text-sm text-muted underline underline-offset-4">
           Back to store

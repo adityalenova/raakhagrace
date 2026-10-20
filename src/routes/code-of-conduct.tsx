@@ -43,21 +43,6 @@ const PRINCIPLES: { n: string; title: string; body: string }[] = [
   },
 ];
 
-function Figure({ src, alt, caption }: { src: string; alt: string; caption: string }) {
-  return (
-    <figure className="not-prose my-8 overflow-hidden rounded-xl border border-line bg-paper">
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        className="h-[min(360px,42vh)] w-full object-cover"
-      />
-      <figcaption className="px-5 py-4 text-xs leading-relaxed text-muted">{caption}</figcaption>
-    </figure>
-  );
-}
-
 function Page() {
   return (
     <SiteShell>
@@ -66,8 +51,6 @@ function Page() {
         kicker="How we work"
         updated="20 October 2026"
         wide
-        image="/images/cat-necklaces.jpg"
-        imageAlt="A kundan necklace with ruby-tone drops, laid on blue silk"
         toc={[
           { href: "#pledge", label: "The pledge" },
           { href: "#scope", label: "Who this binds" },
@@ -90,11 +73,6 @@ function Page() {
         </p>
 
         <h2 id="pledge">The pledge</h2>
-        <Figure
-          src="/images/nav-craft.jpg"
-          alt="Hands stringing beads at the atelier bench"
-          caption="At the bench — every strand is counted, kotted and finished by a named pair of hands."
-        />
         <p>
           We make light, handmade jewellery, and we make it honestly: what a piece is made of is
           what the page says, what you pay is what we quoted, and what we promise is something we have
@@ -191,11 +169,6 @@ function Page() {
         </ul>
 
         <h2 id="materials">Materials, photography and honesty about both</h2>
-        <Figure
-          src="/images/nav-bridal.jpg"
-          alt="A bridal set laid out on cloth"
-          caption="On the page — photographs are of the piece we will send you, not a similar one."
-        />
         <p>
           Everything here is handmade fashion jewellery: gold polish and gold-plated metal with
           pearls, kundan, crystal and ruby-tone stones. It is not solid gold, it is not hallmarked, and
@@ -289,11 +262,6 @@ function Page() {
         </ul>
 
         <h2 id="online">Online and community conduct</h2>
-        <Figure
-          src="/images/nav-community.jpg"
-          alt="Customers wearing Raakha Grace jewellery"
-          caption="In the open — what we show publicly is what we are prepared to be asked about."
-        />
         <p>
           The thread, the comments and the DMs run on the same rules as the bench. We will answer a
           hard question in public, and we do not delete criticism of our own work — a complaint about
