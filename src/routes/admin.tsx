@@ -75,18 +75,18 @@ type ViewKey = (typeof VIEWS)[number]["key"];
 
 /** What each desk is, and one line on how to read it. */
 const VIEW_META: Record<ViewKey, { title: string; note: string }> = {
-  products: { title: "Product dashboard", note: "· edits save to this browser" },
+  products: { title: "Product dashboard", note: "edits save to this browser" },
   bookings: {
     title: "Order desk",
-    note: "· booking status you set here is what the customer sees",
+    note: "booking status you set here is what the customer sees",
   },
   analytics: {
     title: "Bench analytics",
-    note: "· counted from sign-ups and bookings in our own database — no visitor tracking",
+    note: "counted from sign-ups and bookings in our own database — no visitor tracking",
   },
   users: {
     title: "Sign-ups",
-    note: "· who has an account, how they got in, and what they have booked",
+    note: "who has an account, how they got in, and what they have booked",
   },
 };
 
