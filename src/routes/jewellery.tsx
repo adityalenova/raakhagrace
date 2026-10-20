@@ -25,6 +25,8 @@ function Page() {
         title={title}
         subtitle="Certified craft, contemporary lines, and pieces that move with you — from a quiet Tuesday to a night you will remember."
         hero="/images/hero-woman.jpg"
+        heroAlt="A model wearing the atelier's layered diamond necklaces and drop earrings"
+        heroFocus="50% 52%"
         products={products}
         chips={[
           { label: "All", href: "/jewellery", active: !category },

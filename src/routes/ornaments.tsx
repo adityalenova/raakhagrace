@@ -29,6 +29,8 @@ function Page() {
         title={title}
         subtitle="Ceremonial pieces with a lighter hand — mangalsutra, bridal sets, and heirloom gold designed to photograph well and still feel liveable."
         hero="/images/occ-wedding.jpg"
+        heroAlt="A bride and groom at the mandap, her kundan set and bangles in light"
+        heroFocus="50% 32%"
         products={products}
         chips={[
           { label: "All", href: "/ornaments", active: !category },

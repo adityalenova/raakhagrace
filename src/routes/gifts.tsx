@@ -29,6 +29,12 @@ function Page() {
         title={title}
         subtitle="Extraordinary gifts for birthdays, vows, and the days in between — wrapped as if they left our hands, not a warehouse."
         hero={match?.image ?? "/images/occ-birthday.jpg"}
+        heroAlt={
+          match
+            ? `${match.label} — a piece from the atelier worn at the celebration`
+            : "A woman in a cream saree wearing a ruby and pearl pendant necklace"
+        }
+        heroFocus="50% 34%"
         products={products}
         chips={[
           { label: "All gifts", href: "/gifts", active: !occasion },

@@ -322,7 +322,7 @@ export const FACTS: Fact[] = [
       "how will it hold up",
     ],
     answer:
-      "Wipe with a soft dry cloth after each wear, keep it away from perfume, water, sweat and gym sessions, and put it on after your lotion and hair oil have settled. Store it flat with the pieces apart. Treated like that, gold polish keeps its warmth for years; treated like that is also the whole condition — polish that is worn through sweat and perfume and never wiped does dull, and that is wear, not a defect. The first polish is free within six months.",
+      "Wipe with a soft dry cloth after each wear, keep it away from perfume, water, sweat and gym sessions, and put it on after your lotion and hair oil have settled. Store it flat with the pieces apart. Treated like that, gold polish keeps its warmth for years. Untreated — worn through sweat and perfume and never wiped — polish does dull, and that is wear, not a defect, so it is not covered by anything we owe you afterwards.",
     links: [
       { label: "Care rules in full", to: "/terms" },
       { label: "A day at the bench", to: "/blog" },

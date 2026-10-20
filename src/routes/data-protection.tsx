@@ -81,8 +81,8 @@ function Page() {
         kicker="Your data"
         updated="20 October 2026"
         wide
-        image="/images/nav-craft.jpg"
-        imageAlt="Hand-strung beads at the Raakha Grace bench"
+        image="/images/cat-pendants.jpg"
+        imageAlt="A fine gold pendant chain resting on champagne silk"
         toc={[
           { href: "#who", label: "Who we are" },
           { href: "#law", label: "The law we answer to" },

@@ -66,8 +66,8 @@ function Page() {
         kicker="How we work"
         updated="20 October 2026"
         wide
-        image="/images/nav-atelier.jpg"
-        imageAlt="The Raakha Grace workroom"
+        image="/images/cat-necklaces.jpg"
+        imageAlt="A kundan necklace with ruby-tone drops, laid on blue silk"
         toc={[
           { href: "#pledge", label: "The pledge" },
           { href: "#scope", label: "Who this binds" },
@@ -280,8 +280,11 @@ function Page() {
             not electroplate at the bench, so there is no plating effluent to dispose of here.
           </li>
           <li>
-            Repairs are offered before replacement, and the free first polish within six months exists
-            partly so a piece is kept rather than discarded.
+            Pieces are strung and kotted so a strand can be taken apart and rebuilt rather than
+            binned, and the beads we buy in depth stay on the shelf so a favourite piece can be made
+            again on request. That is how the work is built, not a service promise: there is no
+            warranty period and no free re-polishing, and a piece that dulls with wear is worn, not
+            defective.
           </li>
         </ul>
 

@@ -43,13 +43,13 @@ export function LegalPage({
       {updated ? <p className="mt-3 text-sm text-muted">Last updated {updated}</p> : null}
 
       {image ? (
-        <div className="mt-8 overflow-hidden rounded-xl bg-paper">
+        <div className="mt-8 overflow-hidden rounded-xl border border-line bg-surface">
           <img
             src={image}
             alt={imageAlt ?? ""}
             loading="lazy"
             decoding="async"
-            className="h-[min(340px,42vh)] w-full object-cover"
+            className="h-[min(320px,40vh)] w-full object-cover object-[50%_45%]"
           />
         </div>
       ) : null}
