@@ -64,9 +64,19 @@ export type MailBlock = {
   closing?: string;
 };
 
-export function brandMail({ headline, paragraphs, details, cta, note, closing }: MailBlock): string {
+export function brandMail({
+  headline,
+  paragraphs,
+  details,
+  cta,
+  note,
+  closing,
+}: MailBlock): string {
   const body = paragraphs
-    .map((p) => `<p style="margin:0 0 18px;font-family:${SERIF};font-size:15px;line-height:1.75;color:${INK}">${p}</p>`)
+    .map(
+      (p) =>
+        `<p style="margin:0 0 18px;font-family:${SERIF};font-size:15px;line-height:1.75;color:${INK}">${p}</p>`,
+    )
     .join("");
 
   const detailRows = (details ?? [])
@@ -149,7 +159,11 @@ export async function sendVerificationMail(input: {
     note: "Once verified, your address is saved for booking confirmations and product enquiries.",
     closing: "Yours sincerely,",
   });
-  const result = await sendEmail({ to: input.to, subject: "Confirm your Raakha Grace account", html });
+  const result = await sendEmail({
+    to: input.to,
+    subject: "Confirm your Raakha Grace account",
+    html,
+  });
   if (!result.ok) console.error("[auth] verification mail failed:", result.error);
 }
 
@@ -174,6 +188,56 @@ export async function sendWelcomeMail(input: { to: string; name: string }): Prom
     html,
   });
   if (!result.ok) console.error("[auth] welcome mail failed:", result.error);
+}
+
+/**
+ * The six-digit confirmation code, sent instead of a link.
+ *
+ * A link asks the customer's mail client to open a URL on our host; a code asks
+ * them to look at one screen and type into another. The second one survives a
+ * clipped button, a webmail client that rewrites the URL, and an inbox that
+ * strips the styling off everything else in this template — which is why the
+ * code is set in a plain table cell with a letterspaced face rather than as a
+ * button, and why it is also repeated in the text above it.
+ */
+export async function sendOtpMail(input: {
+  to: string;
+  otp: string;
+  minutes: number;
+  type: "sign-in" | "email-verification" | "forget-password" | "change-email";
+}): Promise<void> {
+  const headline =
+    input.type === "forget-password"
+      ? "Reset your password"
+      : input.type === "change-email"
+        ? "Confirm your new address"
+        : "Your confirmation code";
+
+  const purpose =
+    input.type === "forget-password"
+      ? "Enter this code on the site to choose a new password."
+      : input.type === "change-email"
+        ? "Enter this code on the site to confirm the new address on your account."
+        : "Enter this code on the site to confirm your address and open your account.";
+
+  const html = brandMail({
+    headline,
+    paragraphs: [
+      `Dear customer,<br/>&nbsp;`,
+      purpose,
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 2px"><tr><td align="center" style="padding:16px 30px;border:1px solid ${LINE};border-radius:3px;background:${BG}"><span style="font-family:${SANS};font-size:30px;line-height:1;letter-spacing:.34em;color:${INK};font-weight:600">${escapeHtml(input.otp)}</span></td></tr></table>`,
+      `The code is valid for ${input.minutes} minutes and can be used once. If you did not ask for it, nothing needs doing — an unconfirmed address simply stays unconfirmed, and this mail can be deleted.`,
+    ],
+    note: "We will never ask you for this code on WhatsApp, Instagram or over the phone. Anyone who does is not us.",
+    closing: "Yours sincerely,",
+  });
+
+  const result = await sendEmail({
+    to: input.to,
+    subject: `${input.otp} is your Raakha Grace code`,
+    html,
+  });
+  if (!result.ok) console.error("[auth] otp mail failed:", result.error);
 }
 
 /** True when both the key and a sender address are live. */

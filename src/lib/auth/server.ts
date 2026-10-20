@@ -30,7 +30,7 @@
  * a verified id via `@/lib/auth/middleware`.
  */
 import { betterAuth } from "better-auth";
-import { bearer, captcha, genericOAuth } from "better-auth/plugins";
+import { bearer, captcha, emailOTP, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
@@ -38,7 +38,7 @@ import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { resendConfigured, sendEmail } from "../email/sender.server";
-import { sendVerificationMail, sendWelcomeMail } from "../email/brand.server";
+import { sendOtpMail, sendVerificationMail, sendWelcomeMail } from "../email/brand.server";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { captchaRequired, turnstileSecretKey } from "./turnstile.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -178,6 +178,20 @@ export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 /** How long a "confirm your account" link stays valid, in hours. */
 const VERIFICATION_HOURS = 72;
 
+/**
+ * The confirmation code: six digits, ten minutes, five guesses.
+ *
+ * Ten minutes rather than the plugin's five-minute default because the customer
+ * is switching windows, on a phone, often in one hand. Five attempts rather than
+ * three because a mistyped digit is the normal case, and a code that locks on
+ * the second try just produces resend requests. Brute force is not the threat a
+ * six-digit address-confirmation code is defending against — someone else's
+ * mailbox is.
+ */
+const OTP_LENGTH = 6;
+const OTP_MINUTES = 10;
+const OTP_ATTEMPTS = 5;
+
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
 const grokOAuthPlugin =
@@ -288,18 +302,25 @@ export const auth = betterAuth({
 
   // Email verification for email/password sign-ups.
   //
-  // `sendOnSignUp` mints the token and hands us the `/verify-email` URL; the
-  // template is the house layout in `@/lib/email/brand`. We deliberately do NOT
-  // set `emailAndPassword.requireEmailVerification`: an unverified address must
-  // not lock a customer out of an account they just made, because delivery to a
-  // brand-new mailbox depends on the verified sender domain being live. The
-  // dashboard nudges instead, and offers a resend.
+  // The mechanism is now a typed code, not a link — see the `emailOTP` plugin
+  // below. `sendOnSignUp` is off so that a new account gets exactly one mail
+  // carrying one method; leaving it on would send a link and a code in the same
+  // minute, and the customer would reasonably try both and wonder which broke.
+  // The link route itself still exists and still works, so an older mail that a
+  // customer already has is never stranded.
+  //
+  // We deliberately do NOT set `emailAndPassword.requireEmailVerification`: an
+  // unverified address must not lock a customer out of an account they just made,
+  // because delivery to a brand-new mailbox depends on the verified sender domain
+  // being live. The dashboard gates on the flag in `verify-gate.ts` instead.
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false,
     expiresIn: VERIFICATION_HOURS * 60 * 60,
     sendVerificationEmail: async ({ user, url }) => {
       if (!resendConfigured()) {
-        console.log(`[auth] Resend is not configured — verification link for ${user.email}: ${url}`);
+        console.log(
+          `[auth] Resend is not configured — verification link for ${user.email}: ${url}`,
+        );
         return;
       }
       await sendVerificationMail({
@@ -321,7 +342,9 @@ export const auth = betterAuth({
         after: async (user) => {
           if (!user.email) return;
           if (!resendConfigured()) {
-            console.log(`[auth] Resend is not configured — skipping the welcome mail for ${user.email}`);
+            console.log(
+              `[auth] Resend is not configured — skipping the welcome mail for ${user.email}`,
+            );
             return;
           }
           await sendWelcomeMail({ to: user.email, name: user.name ?? "" });
@@ -387,6 +410,40 @@ export const auth = betterAuth({
           }),
         ]
       : []),
+
+    // Confirmation by typed code rather than by link. Adds
+    // `/email-otp/send-verification-otp` and `/email-otp/verify-email`; the
+    // second one flips `emailVerified` on the user row, which is what the
+    // dashboard gate reads.
+    //
+    // `storeOTP: "hashed"` because the codes land in the same Postgres as every
+    // password — a plaintext column there would turn a database leak into an
+    // account-takeover kit, for no gain. Hashing means a resend always mints a
+    // fresh code instead of repeating the old one, which is the safer default
+    // anyway.
+    emailOTP({
+      otpLength: OTP_LENGTH,
+      expiresIn: OTP_MINUTES * 60,
+      allowedAttempts: OTP_ATTEMPTS,
+      storeOTP: "hashed",
+      sendVerificationOnSignUp: true,
+      async sendVerificationOTP(data) {
+        if (!resendConfigured()) {
+          // Same escape hatch as the other mails: with no sender configured the
+          // code is logged rather than sent, so local development can still
+          // complete a sign-up. Never reachable in production, where the key is
+          // set — and note that this logs a live code, which is why it is gated.
+          console.log(`[auth] Resend is not configured — code for ${data.email}: ${data.otp}`);
+          return;
+        }
+        await sendOtpMail({
+          to: data.email,
+          otp: data.otp,
+          type: data.type,
+          minutes: OTP_MINUTES,
+        });
+      },
+    }),
 
     // Bridges Better Auth's Set-Cookie into TanStack Start responses. MUST be
     // last so it runs after every other plugin's hooks.

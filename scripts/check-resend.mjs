@@ -25,10 +25,12 @@ function loadEnv(file) {
 const env = { ...loadEnv("../.env"), ...loadEnv("../.env.local"), ...process.env };
 const key = env.RESEND_API_KEY?.trim();
 const from = env.RESEND_FROM?.trim();
-const to = process.argv[2] || (env.ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean)[0];
+const to =
+  process.argv[2] ||
+  (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)[0];
 
 if (!key) {
   console.log("RESULT: RESEND_API_KEY is not set — no mail can leave the app.");

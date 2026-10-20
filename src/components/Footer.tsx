@@ -160,8 +160,15 @@ export function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 px-4 py-6 text-center text-xs tracking-[0.16em] uppercase text-ink-muted">
-        © {new Date().getFullYear()} Raakha Grace. All rights reserved.
+      {/*
+        Left-aligned inside the same 7xl column as the link grid above it, so the
+        line reads as the last row of the footer rather than a caption floating in
+        the middle of the band.
+      */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <p className="border-t border-white/10 py-6 text-left text-xs tracking-[0.16em] uppercase text-ink-muted">
+          © {new Date().getFullYear()} Raakha Grace. All rights reserved.
+        </p>
       </div>
     </footer>
   );

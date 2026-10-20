@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BadgeCheck,
+  Check,
+  Copy,
   Heart,
   Inbox,
+  KeyRound,
   Link2,
-  MailWarning,
   MessageCircle,
   Package,
   RotateCcw,
@@ -13,11 +15,17 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { LotusMark } from "@/components/LotusMark";
 import { SiteShell } from "@/components/SiteShell";
 import { UserButton } from "@/lib/auth/gates";
-import { resendVerificationEmail } from "@/lib/auth/client";
+import {
+  resendVerificationEmail,
+  sendEmailCode,
+  verifyEmailCode,
+  type OtpResult,
+} from "@/lib/auth/client";
+import { adminStatus } from "@/lib/auth-status";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/auth/verify-gate";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useCart } from "@/lib/cart-store";
@@ -35,6 +43,12 @@ import { useWishlist } from "@/lib/wishlist-store";
 import type { Product } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard")({ component: Page });
+
+/**
+ * Shape of `adminStatus()` — derived rather than imported from
+ * `admin.server.ts`, which a client route must not import statically.
+ */
+type AdminStatus = Awaited<ReturnType<typeof adminStatus>>;
 
 /**
  * The pill a booking wears. "new" is deliberately not alarming — the atelier
@@ -57,6 +71,11 @@ function Page() {
   const removeWish = useWishlist((s) => s.remove);
   const get = useCatalog((s) => s.get);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
+  /**
+   * Server's verdict on this session for `/admin`. Asked once, after sign-in,
+   * because the owner's card below should not flash in and out.
+   */
+  const [admin, setAdmin] = useState<AdminStatus | null>(null);
 
   const reloadBookings = useCallback(() => {
     void listMyBookings()
@@ -69,6 +88,15 @@ function Page() {
     void mergeGuestToServer();
     reloadBookings();
   }, [user, mergeGuestToServer, reloadBookings]);
+
+  useEffect(() => {
+    if (!user) return;
+    // `adminStatusForRequest` never throws, so a failure here means the request
+    // itself did not land — in which case the owner's card stays off the page.
+    void adminStatus()
+      .then(setAdmin)
+      .catch(() => setAdmin(null));
+  }, [user]);
 
   if (isPending) {
     return (
@@ -138,26 +166,28 @@ function Page() {
           <LotusMark className="h-10" />
           <h1 className="mt-5 font-display text-4xl sm:text-5xl">Confirm your email first</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            Your atelier opens as soon as you tap the link we sent. Nothing is lost in the meantime
-            — your cart and saved pieces are held on this device.
+            Your atelier opens the moment the code you type matches the one we mailed. Nothing is
+            lost in the meantime — your cart and saved pieces are held on this device.
           </p>
           <VerifyBanner email={user.primaryEmail ?? ""} />
           {/*
             The door has to have a second handle. Confirmation mail only reaches a
-            customer once the sender domain is verified in Resend; until then the
-            "Resend link" button above cannot succeed, and a gate with no way
-            through is just a wall. Orders run over WhatsApp regardless of whether
-            an account exists, so this is a real alternative and not a consolation.
+            customer once the sender domain is verified in Resend; until then no
+            code can be delivered, and a gate with no way through is just a wall.
+            Orders run over WhatsApp regardless of whether an account exists, so
+            this is a real alternative and not a consolation.
           */}
           <div className="mt-8 rounded-xl border border-line bg-paper/60 p-6">
-            <h2 className="font-display text-2xl">Link never arrived?</h2>
+            <h2 className="font-display text-2xl">Code never arrived?</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
               It happens — a filter, a typo, or our mailer still warming up on a new address. You do
               not need an account to order: send us the piece you want and we will book it by hand.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <a
-                href={whatsappLink("Namaste! I could not confirm my email on the Raakha Grace site.")}
+                href={whatsappLink(
+                  "Namaste! I could not confirm my email on the Raakha Grace site.",
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-11 items-center gap-2 rounded-md bg-fg px-5 text-[0.7rem] tracking-[0.16em] text-bg uppercase transition hover:opacity-90"
@@ -234,6 +264,13 @@ function Page() {
               </div>
             ))}
           </section>
+
+          {/*
+            The owner's memo, printed only for a session the server allowlisted —
+            which is what makes it safe to show the desk's address and the email
+            that opens it on a page a customer can also be on.
+          */}
+          {admin?.allowed && <OwnerDesk email={admin.email ?? user.primaryEmail ?? ""} />}
 
           <div className="mt-12 grid gap-10 lg:grid-cols-[1.55fr_1fr]">
             <div className="min-w-0 space-y-12">
@@ -529,62 +566,331 @@ function SectionTitle({
   );
 }
 
-/** Shown until the address on an email/password account is confirmed. */
-function VerifyBanner({ email }: { email: string }) {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [note, setNote] = useState("");
+/**
+ * The owner's memo: where the admin desk is, which address opens it, and what to
+ * expect when the desk opens.
+ *
+ * Rendered only when the server says this session is on the `ADMIN_EMAILS`
+ * allowlist, so the URL and the address never appear on a customer's dashboard.
+ * There is no separate admin password to print — access follows the Google
+ * address, which is the point worth writing down.
+ */
+function OwnerDesk({ email }: { email: string }) {
+  const [url, setUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  async function resend() {
-    setState("sending");
-    const res = await resendVerificationEmail(email);
-    if (res.ok) {
-      setState("sent");
-      setNote(`A fresh confirmation link is on its way to ${email}.`);
-    } else {
-      // `res.error` is the upstream text — a Resend status line and a JSON body.
-      // It is worth logging, not worth showing: a customer cannot act on
-      // `Resend 422: {"name":"validation_error"}`, and it reads as the site
-      // breaking rather than as a mailer that has not been given a domain yet.
-      console.warn("[verify] resend failed", res.error);
-      setState("error");
-      setNote("That link could not be sent just now. Message us on WhatsApp and we will sort it out.");
+  useEffect(() => {
+    setUrl(`${window.location.origin}/admin`);
+  }, []);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // The clipboard API needs a secure context and a user gesture. Both are
+      // normally true here; if the browser still refuses, the address is printed
+      // on the card, so a long-press selection works.
+      console.warn("[admin] clipboard blocked");
     }
   }
 
   return (
-    <section className="relative z-10 mt-10 overflow-hidden rounded-xl border border-accent/40 bg-surface p-6 sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-5">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[0.65rem] tracking-[0.2em] text-accent uppercase">
-            <MailWarning className="h-4 w-4" /> One more step
-          </p>
-          <h2 className="mt-3 font-display text-2xl">Confirm your email address</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            We sent a confirmation link to <span className="text-fg">{email}</span>. Until you tap
-            it, booking confirmations and product enquiries may land in the spam folder — and the
-            link expires 72 hours after it was sent.
-          </p>
+    <section className="mt-6 overflow-hidden rounded-xl border border-ink/25 bg-ink p-6 text-ink-fg sm:p-7">
+      <p className="flex items-center gap-2 text-[0.65rem] tracking-[0.2em] text-ink-muted uppercase">
+        <ShieldCheck className="h-4 w-4" /> Owner&rsquo;s desk
+      </p>
+      <h2 className="mt-3 font-display text-2xl text-ink-fg">Atelier admin</h2>
+
+      <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        <div>
+          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">
+            Admin address
+          </dt>
+          <dd className="mt-1.5 break-all text-sm">{url || "/admin"}</dd>
         </div>
-        <div className="shrink-0">
+        <div>
+          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">
+            Signed in as
+          </dt>
+          <dd className="mt-1.5 break-all text-sm">{email}</dd>
+          <dd className="mt-1 text-xs text-ink-muted">
+            On the ADMIN_EMAILS allowlist — no separate password.
+          </dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">Desks</dt>
+          <dd className="mt-1.5 text-sm">Products · Order desk · Analytics · Sign-ups</dd>
+          <dd className="mt-1 text-xs leading-relaxed text-ink-muted">
+            Product edits save to the browser you make them in. The order desk, analytics and
+            sign-ups read the shared database, so they look the same from any device. Orders are
+            answered on WhatsApp at {WHATSAPP_DISPLAY}.
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          to="/admin"
+          className="flex h-11 items-center rounded-md bg-ink-fg px-5 text-[0.7rem] tracking-[0.16em] text-ink uppercase transition hover:opacity-90"
+        >
+          Open the admin desk
+        </Link>
+        {url && (
           <button
             type="button"
-            onClick={() => void resend()}
-            disabled={state === "sending"}
+            onClick={() => void copy()}
+            className="flex h-11 items-center gap-2 rounded-md border border-ink-muted/40 px-5 text-[0.7rem] tracking-[0.16em] text-ink-fg uppercase transition hover:bg-white/10"
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied" : "Copy link"}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Six digits — the length every Indian transaction SMS uses, so nobody has to count. */
+const CODE_LENGTH = 6;
+/** Mirrors `OTP_MINUTES` in `src/lib/auth/server.ts`, which is what the code expires in. */
+const CODE_MINUTES = 10;
+/** Seconds a customer waits before another code can be mailed to the same address. */
+const RESEND_COOLDOWN = 30;
+
+const blankCode = () => Array.from({ length: CODE_LENGTH }, () => "");
+
+/** Where the code panel is: nothing sent, mail in flight, typed, checked, done. */
+type VerifyState = "idle" | "sending" | "awaiting" | "checking" | "confirmed" | "problem";
+
+/**
+ * Turn an upstream OTP failure into something a customer can act on. `res.code`
+ * is Better Auth's error code; `res.error` is the raw text — worth logging, not
+ * worth showing, since "Resend 422: validation_error" reads as the site breaking
+ * rather than as a mailer still waiting on its domain.
+ */
+function codeProblem(res: OtpResult): string {
+  if (res.ok) return "";
+  switch (res.code) {
+    case "OTP_EXPIRED":
+      return "That code has expired. Send yourself a fresh one.";
+    case "TOO_MANY_ATTEMPTS":
+      return "Too many tries with that code. Ask for a new one.";
+    case "INVALID_OTP":
+      return "That is not the code we sent. Check all six digits and try again.";
+    default:
+      return "The code could not be checked just now. Message us on WhatsApp and we will confirm the address by hand.";
+  }
+}
+
+/**
+ * The confirmation step, in the shape customers expect from a shop: we mail a
+ * six-digit code, they type it, the dashboard opens.
+ *
+ * The old link mail still exists — `/verify-email` answers to anything sent
+ * before this change — but a code is the offer here because a link only pays for
+ * itself when the inbox is warm, and it puts the whole confirmation behind a
+ * message a customer has to hunt for.
+ */
+function VerifyBanner({ email }: { email: string }) {
+  const [digits, setDigits] = useState<string[]>(blankCode);
+  const [state, setState] = useState<VerifyState>("idle");
+  const [note, setNote] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  /** The code already POSTed, so the sixth digit cannot fire it twice. */
+  const tried = useRef("");
+  const boxes = useRef<Array<HTMLInputElement | null>>([]);
+
+  const code = digits.join("");
+  const busy = state === "checking" || state === "sending" || state === "confirmed";
+
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const t = setTimeout(() => setSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [seconds]);
+
+  /**
+   * No submit button: this panel is a small machine with one job, so the sixth
+   * digit is what asks the server. A code that comes back wrong stays on screen
+   * for correction, and clearing a digit re-arms the check so re-typing the same
+   * number is not swallowed as "already tried".
+   */
+  useEffect(() => {
+    if (code.length < CODE_LENGTH) tried.current = "";
+  }, [code]);
+
+  useEffect(() => {
+    if (code.length !== CODE_LENGTH || tried.current === code || busy) return;
+    tried.current = code;
+    setState("checking");
+    void verifyEmailCode(email, code).then((res) => {
+      if (res.ok) {
+        setState("confirmed");
+        setNote("Confirmed — opening your atelier.");
+        // These calls go through plain fetch, so nothing tells the client that
+        // the session's `emailVerified` just flipped. Reloading is the honest
+        // re-read: the gate above is evaluated from the session, not from here.
+        setTimeout(() => window.location.reload(), 1100);
+        return;
+      }
+      console.warn("[verify] code rejected", res.code, res.error);
+      setState("problem");
+      setNote(codeProblem(res));
+    });
+  }, [code, email, busy]);
+
+  function fill(start: number, raw: string) {
+    const chars = raw
+      .replace(/\D/g, "")
+      .slice(0, CODE_LENGTH - start)
+      .split("");
+    if (chars.length === 0) return;
+    setDigits((prev) => {
+      const next = [...prev];
+      chars.forEach((c, i) => {
+        next[start + i] = c;
+      });
+      return next;
+    });
+    boxes.current[Math.min(start + chars.length, CODE_LENGTH - 1)]?.focus();
+  }
+
+  async function send() {
+    if (seconds > 0 || state === "sending" || state === "confirmed") return;
+    setState("sending");
+    const res = await sendEmailCode(email);
+    if (res.ok) {
+      tried.current = "";
+      setDigits(blankCode());
+      boxes.current[0]?.focus();
+      setState("awaiting");
+      setSeconds(RESEND_COOLDOWN);
+      setNote(
+        `A six-digit code is on its way to ${email}. It works once, for ${CODE_MINUTES} minutes.`,
+      );
+      return;
+    }
+    console.warn("[verify] send failed", res.error);
+    setState("problem");
+    setNote(
+      "That code could not be sent just now. Message us on WhatsApp and we will sort it out.",
+    );
+  }
+
+  /**
+   * The other handle on the door. Not a fallback for a broken mailer — both
+   * paths use the same sender — but for a customer who already has the link in
+   * their inbox from sign-up and would rather tap it than wait for a code.
+   */
+  async function sendLink() {
+    const res = await resendVerificationEmail(email);
+    setNote(
+      res.ok
+        ? "A confirmation link is on its way to your inbox, too."
+        : "That link could not be sent just now — the code above is the faster way.",
+    );
+    if (!res.ok) console.warn("[verify] resend link failed", res.error);
+  }
+
+  const confirmed = state === "confirmed";
+
+  return (
+    <section className="relative z-10 mt-10 overflow-hidden rounded-xl border border-accent/40 bg-surface p-6 sm:p-7">
+      <p className="flex items-center gap-2 text-[0.65rem] tracking-[0.2em] text-accent uppercase">
+        {confirmed ? <BadgeCheck className="h-4 w-4" /> : <KeyRound className="h-4 w-4" />}
+        {confirmed ? "Confirmed" : "One more step"}
+      </p>
+      <h2 className="mt-3 font-display text-2xl">
+        {confirmed ? "Your address is confirmed" : "Enter the code we mailed you"}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted">
+        Six digits, sent to <span className="break-all text-fg">{email}</span>. Until it is
+        confirmed, booking confirmations and product enquiries may land in the spam folder.
+      </p>
+
+      <div className="mt-6 flex flex-wrap items-start gap-x-6 gap-y-5">
+        <div className="flex gap-2" role="group" aria-label="Six-digit confirmation code">
+          {digits.map((d, i) => (
+            <input
+              key={`d${i}`}
+              ref={(el) => {
+                boxes.current[i] = el;
+              }}
+              value={d}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, "");
+                if (v.length > 1) return fill(i, v);
+                setDigits((prev) => prev.map((c, j) => (j === i ? v : c)));
+                if (v) boxes.current[Math.min(i + 1, CODE_LENGTH - 1)]?.focus();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Backspace" && !digits[i] && i > 0) {
+                  e.preventDefault();
+                  setDigits((prev) => prev.map((c, j) => (j === i - 1 ? "" : c)));
+                  boxes.current[i - 1]?.focus();
+                } else if (e.key === "ArrowLeft" && i > 0) {
+                  boxes.current[i - 1]?.focus();
+                } else if (e.key === "ArrowRight" && i < CODE_LENGTH - 1) {
+                  boxes.current[i + 1]?.focus();
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                fill(i, e.clipboardData.getData("text"));
+              }}
+              inputMode="numeric"
+              autoComplete={i === 0 ? "one-time-code" : "off"}
+              aria-label={`Digit ${i + 1} of ${CODE_LENGTH}`}
+              disabled={state === "idle" || busy}
+              className="h-14 w-10 rounded-md border border-line bg-bg text-center font-display text-2xl tabular-nums transition focus:border-accent focus:outline-none disabled:opacity-40 sm:w-12"
+            />
+          ))}
+        </div>
+
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => void send()}
+            disabled={state === "sending" || state === "confirmed" || seconds > 0}
             className="flex h-11 items-center gap-2 rounded-md bg-fg px-5 text-[0.7rem] tracking-[0.16em] text-bg uppercase transition hover:opacity-90 disabled:opacity-60"
           >
             <RotateCcw className={`h-4 w-4 ${state === "sending" ? "animate-spin" : ""}`} />
-            {state === "sending" ? "Sending…" : "Resend link"}
+            {state === "sending"
+              ? "Sending…"
+              : state === "idle"
+                ? "Send code"
+                : seconds > 0
+                  ? `Resend in ${seconds}s`
+                  : "Resend code"}
           </button>
-          {note && (
-            <p
-              role="status"
-              className={`mt-2 max-w-56 text-right text-xs ${state === "error" ? "text-danger" : "text-muted"}`}
+          {state !== "idle" && !confirmed && (
+            <button
+              type="button"
+              onClick={() => void sendLink()}
+              className="mt-3 block text-left text-xs text-muted underline decoration-line transition hover:text-fg"
             >
-              {note}
-            </p>
+              Prefer a link? Email that instead
+            </button>
           )}
         </div>
       </div>
+
+      {note && (
+        <p
+          role="status"
+          className={`mt-4 text-xs ${state === "problem" ? "text-danger" : "text-muted"}`}
+        >
+          {note}
+        </p>
+      )}
+
+      {state === "checking" && (
+        <p className="mt-4 flex items-center gap-2 text-xs text-muted">
+          <RotateCcw className="h-3.5 w-3.5 animate-spin" /> Checking…
+        </p>
+      )}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { genericOAuthClient } from "better-auth/client/plugins";
+import { emailOTPClient, genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
 import { GROK_PROVIDERS } from "./providers";
@@ -18,7 +18,7 @@ import { GROK_PROVIDERS } from "./providers";
  * the visitor stays signed in.
  */
 export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
+  plugins: [genericOAuthClient(), emailOTPClient()],
   fetchOptions: {
     onRequest(ctx) {
       const token = getBearerToken();
@@ -293,6 +293,60 @@ export async function signOut(redirectTo = "/"): Promise<void> {
 }
 
 /**
+ * Confirmation by six-digit code — the two halves of the flow the dashboard's
+ * verify panel drives.
+ *
+ * Both `/email-otp/*` routes come from Better Auth's email-otp plugin, whose
+ * client helper is generated from the server plugin's types. This file builds
+ * its client without that type link (see `createAuthClient` above), so the
+ * endpoints are posted directly. Same-origin cookies cover the deployed app and
+ * the bearer token is attached by hand for the preview, which is why both paths
+ * work from one code path.
+ */
+export type OtpResult = { ok: true } | { ok: false; error: string; code?: string };
+
+async function postOtp(path: string, body: Record<string, string>): Promise<OtpResult> {
+  if (typeof window === "undefined") return { ok: false, error: "Client-only call" };
+  const token = getBearerToken();
+  try {
+    const res = await fetch(`/api/auth/${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        code?: string;
+        error?: { message?: string; code?: string };
+      };
+      return {
+        ok: false,
+        error: payload.message ?? payload.error?.message ?? `Request failed (${res.status})`,
+        code: payload.code ?? payload.error?.code,
+      };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not reach the server" };
+  }
+}
+
+/** Email a fresh confirmation code to `email`. */
+export function sendEmailCode(email: string): Promise<OtpResult> {
+  return postOtp("email-otp/send-verification-otp", { email, type: "email-verification" });
+}
+
+/** Check a typed code; on success the address is marked verified server-side. */
+export function verifyEmailCode(email: string, otp: string): Promise<OtpResult> {
+  return postOtp("email-otp/verify-email", { email, otp });
+}
+
+/**
  * Re-mail the branded "confirm your account" link for a signed-in address.
  *
  * `/send-verification-email` is a core Better Auth endpoint with no typed client
@@ -316,8 +370,14 @@ export async function resendVerificationEmail(
       body: JSON.stringify({ email, callbackURL: "/dashboard" }),
     });
     if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: { message?: string } };
-      return { ok: false, error: body.message ?? body.error?.message ?? `Request failed (${res.status})` };
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: { message?: string };
+      };
+      return {
+        ok: false,
+        error: body.message ?? body.error?.message ?? `Request failed (${res.status})`,
+      };
     }
     return { ok: true };
   } catch (err) {

@@ -19,7 +19,9 @@ export function HomePage() {
     <main>
       {/* The hero is the film, by design — nothing on top of it. Screen readers
           and search engines still need a page title, so it lives here unseen. */}
-      <h1 className="sr-only">Raakha Grace — handmade jewellery, light enough for every occasion</h1>
+      <h1 className="sr-only">
+        Raakha Grace — handmade jewellery, light enough for every occasion
+      </h1>
       <section className="relative w-full overflow-hidden bg-ink">
         <InViewVideo
           wrapperClassName="aspect-video w-full"
@@ -86,8 +88,12 @@ export function HomePage() {
           src="/videos/cover.mp4"
           poster="/images/atelier-still.jpg"
         />
-        <div className="absolute inset-0 bg-fg/25" />
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-bg">
+        {/*
+          No colour wash across the film. The title sits on the footage itself and
+          carries a soft shadow instead, which keeps it readable over a bright
+          frame without tinting the whole band the way `bg-fg/25` used to.
+        */}
+        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-bg [text-shadow:0_1px_18px_rgba(40,22,14,0.65)]">
           <p className="text-[0.7rem] tracking-[0.4em] uppercase">The Atelier Film</p>
           <h2 className="mt-4 font-display text-4xl sm:text-6xl">Light, made to be worn</h2>
         </div>

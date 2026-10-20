@@ -3,6 +3,7 @@ import { ChevronDown, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { bannerLineFor } from "@/lib/banner-lines";
 import { useCart } from "@/lib/cart-store";
 import { useProductList } from "@/lib/catalog-store";
 import { NAV_MENUS, type NavMenu } from "@/lib/nav";
@@ -18,6 +19,8 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  /** The strip above the bar says something about the page it is on. */
+  const bannerLine = bannerLineFor(pathname);
   const count = useCart((s) => s.items.reduce((n, i) => n + i.qty, 0));
   const { user, isPending } = useCurrentUserState();
   const catalog = useProductList();
@@ -123,7 +126,7 @@ export function Header() {
       ? createPortal(
           <div className="fixed inset-0 z-[60] flex flex-col bg-surface xl:hidden">
             <p className="bg-ink px-3 py-2 text-center text-[0.62rem] leading-snug tracking-[0.22em] text-ink-fg uppercase">
-              Handmade with heart · Free shipping across India
+              {bannerLine}
             </p>
             <div className="flex h-16 items-center justify-between gap-3 border-b border-line px-4 sm:h-[4.5rem] sm:px-6">
               <button
@@ -143,9 +146,7 @@ export function Header() {
                   key={m.label}
                   label={m.label}
                   open={expanded === m.label}
-                  onToggle={() =>
-                    setExpanded((v) => (v === m.label ? null : m.label))
-                  }
+                  onToggle={() => setExpanded((v) => (v === m.label ? null : m.label))}
                 >
                   <TileRail tiles={m.tiles} onNavigate={() => setOpen(false)} />
                   <Link
@@ -166,7 +167,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md">
       <p className="bg-ink px-3 py-2 text-center text-[0.62rem] leading-snug tracking-[0.22em] text-ink-fg uppercase">
-        Handmade with heart · Free shipping across India
+        {bannerLine}
       </p>
       <div className="border-b border-line" onMouseLeave={() => setMenu(null)}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.5rem] sm:px-6">
