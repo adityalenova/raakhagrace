@@ -82,6 +82,12 @@ export const adminAnalytics = createServerFn({ method: "GET" }).handler(async ()
 
   const openList = OPEN_STATUSES.map((s) => `'${s}'`).join(", ");
 
+  // Postgres folds an unquoted column alias to lower case, so a camelCase alias
+  // comes back as `signupsprev` and the camelCase read in JavaScript is silently
+  // `undefined` — which `n()` then turns into a plausible-looking zero. Every
+  // alias below is therefore one lowercase word, or an explicit snake_case name
+  // matched by the same snake_case key on this side.
+
   // One query per shape rather than one giant one: these tables are tiny, and a
   // readable SQL string is worth more here than saving four round trips.
   const [people, active, totals, growth, status, channel, signups, orders, pieces, providers] =
@@ -116,24 +122,24 @@ export const adminAnalytics = createServerFn({ method: "GET" }).handler(async ()
       ),
       sql.query<{
         signups30: unknown;
-        signupsPrev: unknown;
+        signups_prev: unknown;
         orders30: unknown;
-        ordersPrev: unknown;
+        orders_prev: unknown;
         revenue30: unknown;
-        revenuePrev: unknown;
+        revenue_prev: unknown;
       }>(
         `select
            (select count(*) from "user"   where "createdAt" >= now() - interval '30 days')::int8 as signups30,
            (select count(*) from "user"   where "createdAt" >= now() - interval '60 days'
-                                             and "createdAt" <  now() - interval '30 days')::int8 as signupsPrev,
+                                             and "createdAt" <  now() - interval '30 days')::int8 as signups_prev,
            (select count(*) from orders   where created_at  >= now() - interval '30 days')::int8 as orders30,
            (select count(*) from orders   where created_at  >= now() - interval '60 days'
-                                             and created_at  <  now() - interval '30 days')::int8 as ordersPrev,
+                                             and created_at  <  now() - interval '30 days')::int8 as orders_prev,
            (select coalesce(sum(total), 0) from orders where created_at >= now() - interval '30 days'
                                                           and status <> 'cancelled')::int8 as revenue30,
            (select coalesce(sum(total), 0) from orders where created_at >= now() - interval '60 days'
                                                           and created_at < now() - interval '30 days'
-                                                          and status <> 'cancelled')::int8 as revenuePrev`,
+                                                          and status <> 'cancelled')::int8 as revenue_prev`,
       ),
       sql.query<{ status: string; count: unknown; value: unknown }>(
         `select status, count(*)::int8 as count, coalesce(sum(total), 0)::int8 as value
@@ -194,11 +200,11 @@ export const adminAnalytics = createServerFn({ method: "GET" }).handler(async ()
     },
     growth: {
       signups30: n(growth[0]?.signups30),
-      signupsPrev30: n(growth[0]?.signupsPrev),
+      signupsPrev30: n(growth[0]?.signups_prev),
       orders30: n(growth[0]?.orders30),
-      ordersPrev30: n(growth[0]?.ordersPrev),
+      ordersPrev30: n(growth[0]?.orders_prev),
       revenue30: n(growth[0]?.revenue30),
-      revenuePrev30: n(growth[0]?.revenuePrev),
+      revenuePrev30: n(growth[0]?.revenue_prev),
     },
     orders: {
       total: n(totals[0]?.total),
@@ -272,17 +278,17 @@ export const adminUsers = createServerFn({ method: "GET" })
       emailVerified: boolean;
       image: string | null;
       providers: string | null;
-      createdMs: unknown;
-      lastSeenMs: unknown;
+      created_ms: unknown;
+      last_seen_ms: unknown;
       bookings: unknown;
       spent: unknown;
     }>(
       `select u."id", u."name", u."email", u."emailVerified", u."image",
               (select string_agg(distinct a."providerId", ', ')
                  from "account" a where a."userId" = u."id") as providers,
-              ${MS('u."createdAt"')} as createdMs,
+              ${MS('u."createdAt"')} as created_ms,
               (select ${MS('max(s."updatedAt")')} from "session" s
-                where s."userId" = u."id") as lastSeenMs,
+                where s."userId" = u."id") as last_seen_ms,
               (select count(*) from orders o
                 where o.user_id = u."id" and o.status <> 'cancelled')::int8 as bookings,
               (select coalesce(sum(o.total), 0) from orders o
@@ -297,15 +303,15 @@ export const adminUsers = createServerFn({ method: "GET" })
     const summary = await sql.query<{
       total: unknown;
       verified: unknown;
-      withOrders: unknown;
-      thisWeek: unknown;
+      with_orders: unknown;
+      this_week: unknown;
     }>(
       `select count(*)::int8 as total,
               count(*) filter (where "emailVerified")::int8 as verified,
               count(*) filter (where exists (
                 select 1 from orders o where o.user_id = "user"."id" and o.status <> 'cancelled'
-              ))::int8 as withOrders,
-              count(*) filter (where "createdAt" >= now() - interval '7 days')::int8 as thisWeek
+              ))::int8 as with_orders,
+              count(*) filter (where "createdAt" >= now() - interval '7 days')::int8 as this_week
        from "user"`,
     );
 
@@ -317,14 +323,14 @@ export const adminUsers = createServerFn({ method: "GET" })
         verified: Boolean(r.emailVerified),
         image: r.image,
         providers: r.providers ?? "unknown",
-        createdMs: n(r.createdMs),
-        lastSeenMs: n(r.lastSeenMs) || null,
+        createdMs: n(r.created_ms),
+        lastSeenMs: n(r.last_seen_ms) || null,
         bookings: n(r.bookings),
         spent: n(r.spent),
       })),
       total: n(summary[0]?.total),
       verified: n(summary[0]?.verified),
-      withOrders: n(summary[0]?.withOrders),
-      thisWeek: n(summary[0]?.thisWeek),
+      withOrders: n(summary[0]?.with_orders),
+      thisWeek: n(summary[0]?.this_week),
     };
   });
