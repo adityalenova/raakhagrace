@@ -10,7 +10,9 @@ export const Route = createFileRoute("/cookie-information")({ component: Page })
  * rather than from a template. The names live in `lib/auth/server.ts` (the four
  * `__Host-grok-auth.*` cookies) and in the three persisted zustand stores
  * (`raakha-cart`, `raakha-wish`, `raakha-catalog`) plus `lib/auth/guest.ts` and
- * `components/LaunchFlow.tsx`. If a new one appears, it belongs in this table.
+ * `components/LaunchFlow.tsx`. The one exception is `__va_attribution`, written
+ * by the page-view counter in `routes/__root.tsx` — checked against the script
+ * it loads, which sets no cookie. If a new one appears, it belongs in this table.
  */
 const COOKIES: { name: string; what: string; lasts: string }[] = [
   {
@@ -70,6 +72,11 @@ const STORAGE: { name: string; where: string; what: string }[] = [
     name: "grok-auth.bearer-token",
     where: "sessionStorage",
     what: "The sign-in token, used instead of a cookie when this site is opened inside an embedded frame where cookies are partitioned. Cleared when the tab closes.",
+  },
+  {
+    name: "__va_attribution",
+    where: "localStorage",
+    what: "Written by the page-view counter, not by us. If you arrive from a search result or a link carrying campaign tags, it holds those tags for a short while so the visit can be counted against the right source. It stores no name, email, phone number or cart contents, and the key itself stays in your browser — what is sent away is the page view, counted anonymously to Vercel, which hosts the shop. The counter sets no cookie at all, which is why it does not appear in the table above.",
   },
 ];
 

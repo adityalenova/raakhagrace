@@ -161,6 +161,17 @@ function Page() {
           The <a href="/cookie-information">cookie information page</a> lists every cookie and
           storage key this site writes; none of them is an advertising or tracking cookie.
         </p>
+        <p>
+          One thing we should name rather than leave implicit: the shop counts page views. A small
+          counter hosted by Vercel, which runs the site, records which page was opened and roughly
+          when, so we can tell whether a collection page is worth the photographs on it. It sets no
+          cookie, is not tied to your name, email or order, does not follow you across other people's
+          websites, and cannot be used to recognise you on a return visit. The only trace it leaves
+          on your device is one storage key, listed on the{" "}
+          <a href="/cookie-information">cookie page</a>. If you would rather not be in that count,
+          blocking the request to <code className="text-fg">va.vercel-scripts.com</code> in a
+          privacy extension is enough, and nothing else on the site stops working.
+        </p>
 
         <h2 id="basis">The basis for processing</h2>
         <ul>
@@ -181,9 +192,10 @@ function Page() {
           </li>
           <li>
             <strong>A legitimate, narrow purpose</strong> — keeping the shop secure, and the honest
-            arithmetic in the atelier desk: how many bookings, which pieces, which statuses. Counted
-            from orders and accounts in our own database. We do not reach that number by following
-            visitors around the web.
+            arithmetic in the atelier desk: how many bookings, which pieces, which statuses. Those
+            numbers come from orders and accounts in our own database. The only thing measured about
+            you personally is the anonymous page view described above, and we do not reach any of
+            these numbers by following visitors around the web.
           </li>
         </ul>
 
@@ -195,7 +207,9 @@ function Page() {
           <li>
             <strong>Our hosting and database providers.</strong> The site runs on Vercel and the
             data lives in a managed Neon Postgres database. They store what we write; they are not
-            given permission to use it for their own purposes.
+            given permission to use it for their own purposes. Vercel also runs the page-view counter
+            named above, so the anonymous visit record reaches it — not your name, email, cart or
+            order.
           </li>
           <li>
             <strong>Google</strong>, if you sign in with it. Google handles the authentication and

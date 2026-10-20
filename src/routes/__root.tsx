@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
@@ -57,6 +58,13 @@ export const Route = createRootRoute({
       </head>
       <body className="bg-bg text-fg" style={{ backgroundColor: "#FFF3EC", margin: 0 }}>
         <PreviewHostBridge />
+        {/*
+          Page-view counting for the atelier (see /cookie-information for what it
+          writes and /data-protection for the basis). The component only injects
+          inside an effect, so it renders nothing on the server and cannot shift
+          the markup the client hydrates against.
+        */}
+        <Analytics />
         <AuthProvider>
           <Outlet />
         </AuthProvider>
