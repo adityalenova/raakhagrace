@@ -123,7 +123,7 @@ export const FACTS: Fact[] = [
       "address",
     ],
     answer:
-      `Every piece ships across India in ${SITE.deliveryWindow} in gift-ready packaging, insured, and shipping charges are fixed by our courier partners — not negotiable or discountable. Write the courier service that actually reaches your pin code on the first line, above your address; without it dispatch is delayed. We do not ship outside India yet, but if you have someone here who can receive it, we will happily send it to them.`,
+      `Every piece ships across India in ${SITE.deliveryWindow} in gift-ready packaging, by tracked courier, and shipping charges are fixed by our courier partners — not negotiable or discountable. Write the courier service that actually reaches your pin code on the first line, above your address; without it dispatch is delayed. We do not ship outside India yet, but if you have someone here who can receive it, we will happily send it to them.`,
     links: [{ label: "Shipping & address rules", to: "/terms" }],
   },
   {
@@ -227,15 +227,23 @@ export const FACTS: Fact[] = [
       "wear and tear",
     ],
     answer:
-      "These are assembled from small components, so a stone that loosens or falls, a pearl that comes away, a slight difference in tone, or a finish that reads differently from the photograph are not counted as transit damage. They fall under the atelier warranty and repair process on your product page instead — message us and we will fix it.",
+      "These are assembled from small components, so a stone that loosens or falls, a pearl that comes away, a slight difference in tone, or a finish that reads differently from the photograph are not counted as transit damage — and they are not grounds for a return or a refund either. That is the nature of handmade work, and it is part of what you are buying. Message us and we will tell you honestly what can be done.",
     links: [{ label: "What is not damage", to: "/terms" }],
   },
   {
     id: "warranty",
-    ask: ["warranty", "guarantee", "repair", "free polish", "how long will it last"],
+    ask: [
+      "warranty",
+      "guarantee",
+      "repair",
+      "free polish",
+      "how long will it last",
+      "after sales",
+      "aftercare",
+    ],
     answer:
-      "There is a one-year atelier warranty on craftsmanship and setting, plus a free first polish within six months. It does not cover loss, theft or accidental damage.",
-    links: [{ label: "Care & warranty", to: "/terms" }],
+      "There is no warranty, no guarantee period and no free servicing on these pieces, and no product page promises one. All sales are final, so nothing is exchanged, returned or refunded on preference. What the house does commit to is written in the terms: the continuous 360-degree unboxing video is how a transit-damage or missing-item claim is proved, and where a return is approved for a genuine fault, the amount is adjusted against your next order rather than paid back. Care is what keeps a piece looking right — a soft dry cloth after wear, away from perfume, water and sweat.",
+    links: [{ label: "Read the terms of service", to: "/terms" }],
   },
   {
     id: "colour",
@@ -462,7 +470,7 @@ export const FACTS: Fact[] = [
       "help centre",
     ],
     answer:
-      "There is a Questions page that answers all of it in one place — how an order becomes official, payment, delivery and tracking, the unboxing video, returns, warranty, sizing, materials, gifting and your data. Everything I say here comes from the same pages, so reading them is the same conversation, only faster.",
+      "There is a Questions page that answers all of it in one place — how an order becomes official, payment, delivery and tracking, the unboxing video, returns and what is not treated as damage, sizing, materials, gifting and your data. Everything I say here comes from the same pages, so reading them is the same conversation, only faster.",
     links: [
       { label: "All questions", to: "/faq" },
       { label: "Terms of service", to: "/terms" },

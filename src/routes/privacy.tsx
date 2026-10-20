@@ -105,8 +105,8 @@ function Page() {
         <h2 id="use">How we use it</h2>
         <p>
           To confirm stock and take your order, pack and ship the right pieces to the right pin code,
-          show your bookings and their tracking in your dashboard, honour a warranty, answer support,
-          and keep the shop secure. Where a piece needs an invoice or a warranty record, the order
+          show your bookings and their tracking in your dashboard, answer a claim about what arrived,
+          and keep the shop secure. Where a piece needs an invoice or a delivery record, the order
           history is what proves it.
         </p>
         <p>
@@ -143,11 +143,11 @@ function Page() {
 
         <h2 id="retention">How long we keep it</h2>
         <p>
-          Account data stays while your account is open. Order records outlive delivery, because the
-          atelier warranty runs for a year, an invoice may need reissuing, and Indian tax and consumer
-          records require us to keep them. Cart contents and saved pieces stay in your own browser and
-          are never mirrored to our servers unless you book them. We keep no card data, so nothing on
-          that front can be retained. Full schedules on the{" "}
+          Account data stays while your account is open. Order records outlive delivery, because an
+          invoice may need reissuing, a claim about a parcel is answered from the order, and Indian tax
+          and consumer records require us to keep them. Cart contents and saved pieces stay in your own
+          browser and are never mirrored to our servers unless you book them. We keep no card data, so
+          nothing on that front can be retained. Full schedules on the{" "}
           <a href="/data-protection">data protection page</a>.
         </p>
 

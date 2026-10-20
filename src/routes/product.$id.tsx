@@ -7,6 +7,7 @@ import { useProduct, useProductList } from "@/lib/catalog-store";
 import { useCart } from "@/lib/cart-store";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useWishlist } from "@/lib/wishlist-store";
+import { BUYER_TERMS } from "@/lib/terms";
 import { formatInr } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$id")({ component: Page });
@@ -144,12 +145,16 @@ function Page() {
             <div className="mt-6 grid gap-3 text-sm text-muted sm:grid-cols-2">
               <p className="flex items-start gap-2">
                 <Truck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                Insured shipping across India
+                Tracked courier across India
               </p>
-              <p className="flex items-start gap-2">
+              <Link
+                to="/terms"
+                className="flex items-start gap-2 hover:text-fg"
+                title="The full terms that apply to this order"
+              >
                 <Shield className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                1-year atelier warranty
-              </p>
+                Sold as shown · all sales final
+              </Link>
             </div>
           </div>
         </div>
@@ -163,7 +168,7 @@ function Page() {
                 className={`border-b-2 pb-3 ${tab === t ? "border-fg text-fg" : "border-transparent text-muted"}`}
                 onClick={() => setTab(t)}
               >
-                {t === "story" ? "The piece" : t === "specs" ? "Specifications" : "Care & shipping"}
+                {t === "story" ? "The piece" : t === "specs" ? "Specifications" : "Care & terms"}
               </button>
             ))}
           </div>
@@ -197,20 +202,47 @@ function Page() {
             </dl>
           )}
           {tab === "care" && (
-            <div className="mt-6 grid max-w-4xl gap-6 text-sm leading-relaxed text-muted sm:grid-cols-3">
-              <div>
-                <h3 className="font-medium text-fg">Care</h3>
-                <p className="mt-2">{product.care}</p>
+            <div className="mt-6 max-w-4xl">
+              <div className="grid gap-6 text-sm leading-relaxed text-muted sm:grid-cols-2">
+                <div>
+                  <h3 className="font-medium text-fg">Care for this piece</h3>
+                  <p className="mt-2">{product.care}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-fg">How it ships</h3>
+                  <p className="mt-2">{product.shipping}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-fg">Warranty</h3>
-                <p className="mt-2">{product.warranty}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-fg">Shipping & returns</h3>
-                <p className="mt-2">{product.shipping}</p>
-                <p className="mt-2">
-                  Unused pieces in original packaging may be returned within 7 days.
+
+              {/* The house terms, verbatim from src/lib/terms.ts — the same copy
+                  /terms renders, so a product page can never promise something
+                  the policy withdraws. */}
+              <div className="mt-10 border-t border-line pt-6">
+                <h3 className="font-display text-2xl text-fg">
+                  The terms that apply to this order
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {product.warranty}
+                </p>
+                <dl className="mt-6 space-y-5">
+                  {BUYER_TERMS.map((s) => (
+                    <div key={s.n} className="border-t border-line pt-4 first:border-0 first:pt-0">
+                      <dt className="text-[0.65rem] tracking-[0.16em] text-subtle uppercase">
+                        {s.n}. {s.title}
+                      </dt>
+                      {s.body.map((para) => (
+                        <dd key={para.slice(0, 32)} className="mt-1.5 text-sm leading-relaxed text-muted">
+                          {para}
+                        </dd>
+                      ))}
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-6 text-sm">
+                  <Link to="/terms" className="underline decoration-line underline-offset-4">
+                    Read the full terms of service
+                  </Link>{" "}
+                  — enquiries, refunds and everything else.
                 </p>
               </div>
             </div>

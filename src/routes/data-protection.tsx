@@ -29,7 +29,7 @@ const COLLECTS: { what: string; why: string; ifRefused: string }[] = [
   },
   {
     what: "The pieces you booked, quantities, amounts, booking reference",
-    why: "To confirm the right item, honour the warranty, and answer “which one was it?” a year later.",
+    why: "To confirm the right item, issue an invoice, and answer “which one was it?” a year later.",
     ifRefused: "We cannot fulfil or trace an order.",
   },
   {
@@ -272,9 +272,9 @@ function Page() {
             record goes.
           </li>
           <li>
-            <strong>Order records</strong> — kept after delivery because a warranty runs for a year,
-            an invoice may need reissuing, and Indian tax and consumer records outlive the parcel. We
-            keep the order, not the conversation around it.
+            <strong>Order records</strong> — kept after delivery because an invoice may need
+            reissuing, a claim about a parcel is answered from the order, and Indian tax and consumer
+            records outlive the parcel. We keep the order, not the conversation around it.
           </li>
           <li>
             <strong>Messages</strong> — WhatsApp history lives in the app you and we both use, not on
@@ -305,8 +305,8 @@ function Page() {
           </li>
           <li>
             <strong>Delete it.</strong> Close the account and remove the identity record. Where an
-            order must be kept for tax or warranty reasons, we will say exactly which fields survive
-            and why, rather than quietly keeping everything.
+            order must be kept for tax or record-keeping reasons, we will say exactly which fields
+            survive and why, rather than quietly keeping everything.
           </li>
           <li>
             <strong>Withdraw consent</strong> for anything that is not needed to deliver what you

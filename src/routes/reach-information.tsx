@@ -191,9 +191,9 @@ function Page() {
                   <div>
                     <p className="font-medium text-fg">Shipping across India</p>
                     <p className="mt-1">
-                      Insured, gift-ready, and {SITE.deliveryWindow} after dispatch. We do not ship
-                      outside India yet — if you have someone here who can receive a parcel, we will
-                      happily send it to them.
+                      Gift-ready packaging, tracked courier, and {SITE.deliveryWindow} after
+                      dispatch. We do not ship outside India yet — if you have someone here who can
+                      receive a parcel, we will happily send it to them.
                     </p>
                   </div>
                 </div>

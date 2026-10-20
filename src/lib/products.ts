@@ -1,3 +1,5 @@
+import { AFTER_SALES_TERMS } from "./terms";
+
 export type Product = {
   id: string;
   name: string;
@@ -61,10 +63,15 @@ const CARE_BEADS =
   "Wipe with a soft dry cloth after wear. Keep away from perfume, water, and sweat. Store flat, pieces apart.";
 const CARE_GOLD =
   "Wipe with a soft dry cloth after wear. Put jewellery on after perfume and lotion. Avoid water, gym, and sleep. Store flat, pieces apart.";
+/**
+ * Shipping stated the way the house terms state it: no insurance we do not
+ * carry, and the claim window is the unboxing video, not "write within 48
+ * hours".
+ */
 const SHIP_STD =
-  "Ships across India in 3–7 working days in gift-ready packaging. Insured. Inspect on arrival and write within 48 hours if transit-damaged.";
-const WARRANTY =
-  "1-year atelier warranty on craftsmanship and setting. Free first polish within 6 months. Does not cover loss, theft, or accidental damage.";
+  "Dispatched after payment is confirmed, in gift-ready packaging, by DTDC, Blue Dart or India Post. Shipping charges are fixed and are not negotiable or discountable. Write the courier service that reaches your pin code on the first line above your address. Allow two to three working days for tracking to appear, and open the parcel on one continuous 360-degree video.";
+/** There is no warranty on these pieces — this is what is said instead. */
+const WARRANTY = AFTER_SALES_TERMS;
 
 export const PRODUCTS: Product[] = [
   {

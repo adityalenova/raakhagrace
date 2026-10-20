@@ -83,7 +83,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
   },
   {
     id: "returns",
-    label: "Returns, warranty & care",
+    label: "Returns, damage & care",
     note: "What is final, what is covered, and what is neither.",
     items: [
       {
@@ -97,12 +97,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "A stone fell out. Is that damage?",
-        a: "No, and it is not a reason to worry. These pieces are assembled from small components, so a stone that loosens or falls, a pearl that comes away, a slight difference in tone, or a finish that reads differently from the photograph are not counted as transit damage. They fall under the atelier warranty instead — message us and we will fix it.",
+        a: "No — and it is not grounds for a claim either. These pieces are assembled from small components, so a stone that loosens or falls, a pearl that comes away, a slight difference in tone, or a finish that reads differently from the photograph are not counted as transit damage. That is the nature of handmade work, and it is part of what you are buying. Message us and we will tell you honestly what can be done.",
       },
       {
-        q: "What does the warranty cover?",
-        a: "One year on craftsmanship and setting, plus a free first polish within six months. It does not cover loss, theft or accidental damage.",
-        to: { label: "Care & warranty", href: "/terms" },
+        q: "Is there a warranty or guarantee?",
+        a: "No. There is no warranty period, no guarantee, and no free servicing on these pieces, and nothing on a product page promises one. What you do have is the policy on this page: the unboxing video is how a transit-damage claim is proved, and where we approve a return for a genuine fault the amount is adjusted against your next order.",
+        to: { label: "Read the terms of service", href: "/terms" },
       },
       {
         q: "How do I make it last?",

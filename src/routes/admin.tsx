@@ -974,7 +974,9 @@ function Editor({
           />
         </label>
         <label className="block text-sm">
-          <span className="text-muted">Warranty</span>
+          <span className="text-muted">
+            After-sales note — what the page says about returns and care
+          </span>
           <textarea
             className="mt-1 min-h-24 w-full rounded-md border border-line bg-surface p-3"
             value={form.warranty}
