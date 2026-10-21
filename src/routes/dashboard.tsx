@@ -630,11 +630,13 @@ function OwnerDesk({ email }: { email: string }) {
         </div>
         <div className="sm:col-span-2">
           <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">Desks</dt>
-          <dd className="mt-1.5 text-sm">Products · Order desk · Analytics · Sign-ups</dd>
+          <dd className="mt-1.5 text-sm">
+            Products · Order desk · Insights · People · Analytics
+          </dd>
           <dd className="mt-1 text-xs leading-relaxed text-ink-muted">
-            Product edits save to the browser you make them in. The order desk, analytics and
-            sign-ups read the shared database, so they look the same from any device. Orders are
-            answered on WhatsApp at {WHATSAPP_DISPLAY}.
+            Product edits save to the browser you make them in. Everything else — bookings, the
+            counted figures, customers and analytics — reads the shared database, so it looks the
+            same from any device. Orders are answered on WhatsApp at {WHATSAPP_DISPLAY}.
           </dd>
         </div>
       </dl>

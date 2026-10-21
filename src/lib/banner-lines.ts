@@ -31,7 +31,7 @@ const LINES: ReadonlyArray<readonly [prefix: string, line: string]> = [
   // Account.
   ["/login", "Your saved pieces and booking history, in one place"],
   ["/dashboard", "Saved pieces, bookings and order history"],
-  ["/admin", "Atelier desk — orders, catalogue and sign-ups"],
+  ["/admin", "Atelier desk — orders, catalogue and what the bench sold"],
 
   // House.
   ["/about", "An independent atelier in Hyderabad — the lotus is our only mark"],
