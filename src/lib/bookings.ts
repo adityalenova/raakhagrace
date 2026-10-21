@@ -126,6 +126,10 @@ export const createWhatsAppBooking = createServerFn({ method: "POST" })
         email: z.string().email().max(160).optional().or(z.literal("")).transform((v) => v || undefined),
         address: z.string().max(400).optional(),
         note: z.string().max(400).optional(),
+        // Copied from the visitor's URL by `readAttribution()` and treated as
+        // untrusted text: trimmed, length-capped, and never interpreted.
+        source: z.string().trim().max(60).optional(),
+        campaign: z.string().trim().max(80).optional(),
       })
       .parse(input),
   )
@@ -148,8 +152,9 @@ export const createWhatsAppBooking = createServerFn({ method: "POST" })
       try {
         const inserted = await sql.query<{ id: number }>(
           `insert into orders (user_id, items, total, status, channel, ref,
-             contact_name, contact_phone, contact_email, address, notes)
-           values ($1, $2::jsonb, $3, 'new', 'whatsapp', $4, $5, $6, $7, $8, $9)
+             contact_name, contact_phone, contact_email, address, notes,
+             source, campaign)
+           values ($1, $2::jsonb, $3, 'new', 'whatsapp', $4, $5, $6, $7, $8, $9, $10, $11)
            returning id`,
           [
             user?.id ?? null,
@@ -161,6 +166,8 @@ export const createWhatsAppBooking = createServerFn({ method: "POST" })
             data.email ?? null,
             data.address ?? null,
             data.note ?? null,
+            data.source ?? null,
+            data.campaign ?? null,
           ],
         );
         return { ok: true as const, id: inserted[0]?.id, ref };
@@ -281,7 +288,47 @@ export const setBookingStatus = createServerFn({ method: "POST" })
        where id = $1 returning id`,
       [data.id, data.status, data.tracking ?? null, data.note ?? ""],
     );
-    return { ok: rows.length > 0 };
+    if (!rows.length) return { ok: false as const, mail: "no-row" as const };
+
+    // The customer set nothing in motion here, so this is the moment they hear
+    // about it. Read the contact details back from the row rather than trusting
+    // whatever the desk had on screen when it clicked.
+    const row = await sql.query<{
+      ref: string | null;
+      total: number;
+      contact_email: string | null;
+      contact_name: string | null;
+      tracking: string | null;
+    }>(
+      `select ref, total, contact_email, contact_name, tracking
+       from orders where id = $1`,
+      [data.id],
+    );
+    const booking = row[0];
+    if (!booking?.contact_email) {
+      return { ok: true as const, mail: "no-address" as const };
+    }
+
+    const { sendBookingStatusMail } = await import("@/lib/email/booking-mail.server");
+    const result = await sendBookingStatusMail({
+      to: booking.contact_email,
+      name: booking.contact_name,
+      ref: booking.ref ?? `#${data.id}`,
+      total: booking.total,
+      status: data.status,
+      tracking: booking.tracking,
+    });
+    if (result === "not-applicable") {
+      return { ok: true as const, mail: "silent" as const };
+    }
+    if (result.ok) return { ok: true as const, mail: "sent" as const };
+    // Nothing was asked of the mail service at all — the deployment has no
+    // sender. Saying "the service refused it" would point the owner at Resend
+    // when the thing to fix is the environment.
+    if (result.skipped) {
+      return { ok: true as const, mail: "not-configured" as const, error: result.error };
+    }
+    return { ok: true as const, mail: "refused" as const, error: result.error };
   });
 
 /** Record a booking that arrived in WhatsApp with no prior site visit. */
@@ -293,6 +340,18 @@ export const recordWhatsAppBooking = createServerFn({ method: "POST" })
         phone: z.string().min(8).max(20),
         items: ITEMS,
         note: z.string().max(400).optional(),
+        // Optional because a walk-in chat often has no email. Without it the
+        // row has no address to notify when the status moves.
+        email: z
+          .string()
+          .email()
+          .max(160)
+          .optional()
+          .or(z.literal(""))
+          .transform((v) => v || undefined),
+        // Typed by whoever takes the call, so the attribution desk can count
+        // walk-ins too instead of leaving them in the "not recorded" bucket.
+        source: z.string().trim().max(60).optional(),
       })
       .parse(input),
   )
@@ -308,15 +367,18 @@ export const recordWhatsAppBooking = createServerFn({ method: "POST" })
     const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
     const sql = await getSql();
     const inserted = await sql.query<{ id: number }>(
-      `insert into orders (items, total, status, channel, ref, contact_name, contact_phone, notes)
-       values ($1::jsonb, $2, 'confirmed', 'whatsapp', $3, $4, $5, $6) returning id`,
+      `insert into orders (items, total, status, channel, ref, contact_name,
+         contact_phone, contact_email, notes, source)
+       values ($1::jsonb, $2, 'confirmed', 'whatsapp', $3, $4, $5, $6, $7, $8) returning id`,
       [
         JSON.stringify(items),
         total,
         newBookingRef(),
         data.name.trim(),
         normalizePhone(data.phone),
+        data.email ?? null,
         data.note ?? null,
+        data.source?.trim() || null,
       ],
     );
     return { ok: true as const, id: inserted[0]?.id };

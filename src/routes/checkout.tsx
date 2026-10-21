@@ -3,6 +3,7 @@ import { ArrowLeft, MapPin, Phone, User, Mail, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SiteShell } from "@/components/SiteShell";
 import { createWhatsAppBooking } from "@/lib/bookings";
+import { readAttribution } from "@/lib/attribution";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useCatalog } from "@/lib/catalog-store";
 import { useCart } from "@/lib/cart-store";
@@ -97,6 +98,7 @@ function CheckoutPage() {
           phone: phone.trim(),
           email: email.trim() || undefined,
           address: address.trim(),
+          ...readAttribution(),
         },
       });
     } catch (err) {

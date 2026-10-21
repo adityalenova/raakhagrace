@@ -12,6 +12,13 @@ import { formatInr } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$id")({ component: Page });
 
+/**
+ * Ceiling on the quantity stepper. Not a stock limit — the cart only ever
+ * starts a conversation, and a request for twenty of a handmade piece is
+ * something to talk about rather than a number to trust.
+ */
+const MAX_QTY = 10;
+
 function Page() {
   const { id } = Route.useParams();
   const product = useProduct(id);
@@ -44,7 +51,11 @@ function Page() {
   const related = catalog
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 3);
-  const inStock = product.stock > 0;
+
+  // No count is shown here on purpose. The bench does not track how many of a
+  // piece exist, and an invented "12 in the atelier" both misled customers and
+  // blocked the cart button on a number nobody had typed in. Availability is
+  // settled in the WhatsApp chat, before payment.
 
   function addBag() {
     add(product!.id, qty);
@@ -83,7 +94,8 @@ function Page() {
               ) : null}
             </p>
             <p className="mt-2 text-sm text-muted">
-              {inStock ? `${product.stock} in the atelier` : "Made to order — 10–16 days"}
+              Handmade at the bench in Hyderabad — availability and timing are confirmed with you on
+              WhatsApp before any payment.
             </p>
             <p className="mt-6 max-w-md leading-relaxed text-muted">{product.description}</p>
 
@@ -110,7 +122,7 @@ function Page() {
                 <button
                   type="button"
                   className="grid h-12 w-12 place-items-center"
-                  onClick={() => setQty((q) => Math.min(Math.max(1, product.stock || 1), q + 1))}
+                  onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
                   aria-label="Increase"
                 >
                   <Plus className="h-4 w-4" />
@@ -118,11 +130,10 @@ function Page() {
               </div>
               <button
                 type="button"
-                disabled={!inStock}
-                className="h-12 flex-1 rounded-md bg-fg px-6 text-sm tracking-[0.16em] text-bg uppercase disabled:opacity-40"
+                className="h-12 flex-1 rounded-md bg-fg px-6 text-sm tracking-[0.16em] text-bg uppercase transition hover:opacity-90"
                 onClick={addBag}
               >
-                {added ? "Added" : inStock ? "Add to cart" : "Out of stock"}
+                {added ? "Added" : "Add to cart"}
               </button>
               <button
                 type="button"
@@ -135,8 +146,7 @@ function Page() {
             </div>
             <button
               type="button"
-              disabled={!inStock}
-              className="mt-3 h-12 w-full rounded-md border border-fg text-sm tracking-[0.16em] uppercase disabled:opacity-40"
+              className="mt-3 h-12 w-full rounded-md border border-fg text-sm tracking-[0.16em] uppercase transition hover:bg-fg hover:text-bg"
               onClick={goCheckout}
             >
               Book on WhatsApp
@@ -176,7 +186,8 @@ function Page() {
             <div className="mt-6 max-w-3xl space-y-4 text-sm leading-relaxed text-muted">
               <p>{product.story}</p>
               <p>
-                SKU {product.sku}. {product.hallmark}. {product.certification}.
+                SKU {product.sku}. Sold exactly as photographed, and handmade in small batches, so
+                two pieces of the same design differ slightly.
               </p>
             </div>
           )}
@@ -185,12 +196,8 @@ function Page() {
               {[
                 ["SKU", product.sku],
                 ["Metal", product.metal],
-                ["Purity", product.purity],
-                ["Weight", product.weight],
                 ["Stones", product.stones],
                 ["Size", product.size],
-                ["Hallmark", product.hallmark],
-                ["Certification", product.certification],
                 ["Collection", product.collection],
                 ["Occasion", product.occasion ?? "—"],
               ].map(([k, v]) => (

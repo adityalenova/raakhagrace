@@ -8,16 +8,17 @@ import {
   CircleDollarSign,
   ClipboardList,
   Clock,
+  Lightbulb,
   Mail,
   Users,
   MessageCircle,
   Package,
-  PencilLine,
   Plus,
   RefreshCw,
   Search,
   Send,
   ShieldCheck,
+  Sparkles,
   Undo2,
   X,
 } from "lucide-react";
@@ -51,6 +52,23 @@ import {
   type Booking,
   type BookingStatus,
 } from "@/lib/bookings";
+import {
+  adminAttribution,
+  adminBenchPlan,
+  adminBriefing,
+  adminCustomers,
+  adminVelocity,
+  askTheNumbers,
+  saveBenchSettings,
+  sendBriefingMail,
+  type Attribution,
+  type BenchSettings,
+  type Briefing,
+  type CustomerTrends,
+  type NumbersAnswer,
+  type PlanRow,
+  type Velocity,
+} from "@/lib/insights";
 import { CATEGORIES, type Product } from "@/lib/products";
 import { cn, formatInr } from "@/lib/utils";
 
@@ -65,14 +83,14 @@ const COLLECTION_TABS = [
   { key: "all", label: "Everything" },
   { key: "jewellery", label: "Jewellery" },
   { key: "ornaments", label: "Ornaments" },
-  { key: "gifts", label: "Gifts" },
 ] as const;
 
 const VIEWS = [
   { key: "products", label: "Products", icon: Boxes },
   { key: "bookings", label: "Order desk", icon: ClipboardList },
+  { key: "insights", label: "Insights", icon: Lightbulb },
+  { key: "people", label: "People", icon: Users },
   { key: "analytics", label: "Analytics", icon: BarChart3 },
-  { key: "users", label: "Sign-ups", icon: Users },
 ] as const;
 
 type ViewKey = (typeof VIEWS)[number]["key"];
@@ -84,13 +102,17 @@ const VIEW_META: Record<ViewKey, { title: string; note: string }> = {
     title: "Order desk",
     note: "booking status you set here is what the customer sees",
   },
+  insights: {
+    title: "What the bench sold",
+    note: "every figure counted from booking rows — nothing here is a forecast",
+  },
+  people: {
+    title: "People",
+    note: "accounts and bookings, and what each address has asked for before",
+  },
   analytics: {
     title: "Bench analytics",
     note: "counted from sign-ups and bookings in our own database — no visitor tracking",
-  },
-  users: {
-    title: "Sign-ups",
-    note: "who has an account, how they got in, and what they have booked",
   },
 };
 
@@ -108,18 +130,14 @@ function Page() {
   const reset = useCatalog((s) => s.reset);
   const resetAll = useCatalog((s) => s.resetAll);
 
-  const stats = useMemo(() => {
-    const low = list.filter((p) => p.stock > 0 && p.stock <= 5);
-    const out = list.filter((p) => p.stock === 0);
-    const value = list.reduce((sum, p) => sum + p.price * p.stock, 0);
-    return {
-      pieces: list.length,
-      edited: Object.keys(overrides).length,
-      low: low.length,
-      out: out.length,
-      value,
-    };
-  }, [list, overrides]);
+  // Two numbers, both true. Stock counts and a "stock value" used to sit here
+  // too; they were derived from invented per-piece quantities, so they are gone
+  // rather than estimated. `edited` is real but device-local — the note under
+  // the strip says so, because it is the first thing an owner gets wrong.
+  const stats = useMemo(
+    () => ({ pieces: list.length, edited: Object.keys(overrides).length }),
+    [list, overrides],
+  );
 
   const shown = useMemo(() => {
     const t = query.trim().toLowerCase();
@@ -177,7 +195,9 @@ function Page() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex rounded-full border border-ink-muted/40 p-1">
+              {/* Five labels do not fit a 390px screen in one row; the pill
+                  breaks onto a second line instead of pushing the page wide. */}
+              <div className="flex flex-wrap justify-end gap-1 rounded-full border border-ink-muted/40 p-1">
                 {VIEWS.map((v) => (
                   <button
                     key={v.key}
@@ -193,15 +213,6 @@ function Page() {
                   </button>
                 ))}
               </div>
-              {view === "products" && (
-                <button
-                  type="button"
-                  onClick={() => resetAll()}
-                  className="flex h-11 items-center gap-2 rounded-md border border-ink-muted/40 px-4 text-[0.68rem] tracking-[0.16em] text-ink-fg uppercase transition hover:border-ink-muted"
-                >
-                  <Undo2 className="h-4 w-4" /> Reset to seed
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => void signOut("/")}
@@ -215,35 +226,45 @@ function Page() {
         </section>
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          {view === "analytics" ? (
+          {view === "insights" ? (
+            <InsightsDesk />
+          ) : view === "people" ? (
+            <PeopleDesk />
+          ) : view === "analytics" ? (
             <AnalyticsPanel />
-          ) : view === "users" ? (
-            <UsersPanel />
           ) : view === "bookings" ? (
             <BookingDesk />
           ) : (
             <>
-              <section className="-mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Stat icon={Boxes} label="Pieces listed" value={String(stats.pieces)} />
-                <Stat
-                  icon={PencilLine}
-                  label="Edited from seed"
-                  value={String(stats.edited)}
-                  tone={stats.edited ? "warn" : "ok"}
-                />
-                <Stat
-                  icon={AlertTriangle}
-                  label="Low or out of stock"
-                  value={`${stats.low + stats.out}`}
-                  hint={stats.out ? `${stats.out} sold out` : "nothing sold out"}
-                  tone={stats.low + stats.out ? "warn" : "ok"}
-                />
-                <Stat
-                  icon={CircleDollarSign}
-                  label="Stock value"
-                  value={formatInr(stats.value)}
-                  hint="at listed prices"
-                />
+              {/* One quiet line instead of four big cards. Every number on it is
+                  something the shop actually knows; the stock and value tiles that
+                  used to sit here were computed from quantities nobody had entered. */}
+              <section className="-mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface px-5 py-4">
+                <div>
+                  <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+                    <span className="font-display text-2xl tabular-nums">{stats.pieces}</span>
+                    <span className="text-muted">pieces at the bench</span>
+                    <span className="mx-1 text-line">·</span>
+                    <span className="font-display text-2xl tabular-nums">{stats.edited}</span>
+                    <span className="text-muted">
+                      {stats.edited === 1 ? "edit" : "edits"} on this device
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-subtle">
+                    No stock counts — availability is settled in the WhatsApp chat.
+                  </p>
+                </div>
+                {stats.edited > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => resetAll()}
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-full border border-line px-4 text-[0.62rem] tracking-[0.14em] text-muted uppercase transition hover:border-accent hover:text-fg"
+                    title="Discard the edits saved in this browser"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" /> Reset {stats.edited}{" "}
+                    {stats.edited === 1 ? "edit" : "edits"}
+                  </button>
+                )}
               </section>
 
               {current ? (
@@ -323,7 +344,9 @@ function Page() {
                               </div>
                             </div>
                             <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
-                              <StockBadge stock={p.stock} edited={edited} />
+                              <span className="text-[0.62rem] tracking-[0.14em] text-accent uppercase">
+                                {edited ? "Edited on this device" : ""}
+                              </span>
                               <div className="flex items-center gap-2">
                                 <Link
                                   to="/product/$id"
@@ -437,6 +460,38 @@ function BookingDesk() {
         />
       </section>
 
+      {/*
+        How a booking gets here, printed on the desk itself. The pipeline is the
+        one thing an owner should not have to remember from a chat transcript:
+        every row below arrived by one of these two routes, and the status set
+        here is the only thing the customer can read on the site.
+      */}
+      <section className="mt-6 rounded-xl border border-line bg-surface px-5 py-4">
+        <p className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+          How a booking starts
+        </p>
+        <ol className="mt-3 grid gap-3 text-xs leading-relaxed text-muted sm:grid-cols-3">
+          <li className="rounded-lg bg-paper/50 px-3 py-2">
+            <span className="font-display text-base text-fg">1</span> — The customer fills name,
+            phone and address on <code className="text-[0.7rem]">/checkout</code> and presses{" "}
+            <em>Book on WhatsApp</em>. The site prices the cart from the catalogue on the server —
+            never from anything the browser sent — and writes the booking with status{" "}
+            <em>Awaiting confirmation</em> and a reference like RG-7K4MQP.
+          </li>
+          <li className="rounded-lg bg-paper/50 px-3 py-2">
+            <span className="font-display text-base text-fg">2</span> — Only after that row exists
+            does the browser open WhatsApp, with the reference on the first line of the message. So
+            the chat and the record are the same order; nothing is promised about payment here.
+          </li>
+          <li className="rounded-lg bg-paper/50 px-3 py-2">
+            <span className="font-display text-base text-fg">3</span> — You move the status below.
+            Each move is what the customer sees in their dashboard, and — when the booking carries
+            an email — the customer is emailed the change. A booking that arrived in the chat with
+            no site visit is added with <em>Log a WhatsApp order</em>.
+          </li>
+        </ol>
+      </section>
+
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <label className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
@@ -500,12 +555,41 @@ function BookingDesk() {
   );
 }
 
+type StatusResult = Awaited<ReturnType<typeof setBookingStatus>>;
+
+/**
+ * What the mailer did with the status change, in the desk's own words.
+ *
+ * "Saved" and "saved but the customer was never told" used to look identical
+ * here, which is how a refused mail becomes invisible until someone asks why a
+ * customer is confused. Each outcome is named, including the boring ones.
+ */
+function mailNoteFor(result: StatusResult): string {
+  switch (result.mail) {
+    case "sent":
+      return "The customer was emailed the new status.";
+    case "refused":
+      return `Saved, but the mail service refused the notice: ${"error" in result ? result.error : "unknown reason"}. Tell them on WhatsApp.`;
+    case "not-configured":
+      return `Saved, but nothing was emailed — this deployment has no sending address (${
+        "error" in result ? result.error : "not configured"
+      }). Tell them on WhatsApp.`;
+    case "no-address":
+      return "Saved. No email address on this booking, so nothing was sent.";
+    case "silent":
+      return "";
+    case "no-row":
+      return "That booking is not on file any more.";
+  }
+}
+
 function BookingRow({ row, onSaved }: { row: DeskRow; onSaved: () => void }) {
   const [status, setStatus] = useState<BookingStatus>(row.status);
   const [tracking, setTracking] = useState(row.tracking ?? "");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mailNote, setMailNote] = useState("");
 
   const dirty =
     status !== row.status || tracking !== (row.tracking ?? "") || note.trim().length > 0;
@@ -513,7 +597,7 @@ function BookingRow({ row, onSaved }: { row: DeskRow; onSaved: () => void }) {
   async function save() {
     setSaving(true);
     try {
-      await setBookingStatus({
+      const result = await setBookingStatus({
         data: {
           id: row.id,
           status,
@@ -523,6 +607,7 @@ function BookingRow({ row, onSaved }: { row: DeskRow; onSaved: () => void }) {
       });
       setNote("");
       setSaved(true);
+      setMailNote(mailNoteFor(result));
       onSaved();
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -559,7 +644,7 @@ function BookingRow({ row, onSaved }: { row: DeskRow; onSaved: () => void }) {
 
       <ul className="mt-4 grid gap-1 border-t border-line pt-4 text-sm text-muted sm:grid-cols-2">
         {row.items.map((it) => (
-          <li key={it.productId} className="flex justify-between gap-4">
+          <li key={it.productId} className="flex min-w-0 justify-between gap-4">
             <span className="truncate">
               {it.name} <span className="text-subtle">{it.sku}</span>
             </span>
@@ -612,7 +697,12 @@ function BookingRow({ row, onSaved }: { row: DeskRow; onSaved: () => void }) {
           {saving ? "Saving…" : "Save"}
         </button>
       </div>
-      {saved && <p className="mt-2 text-xs text-muted">Saved — the customer sees it now.</p>}
+      {saved && (
+        <p className="mt-2 text-xs text-muted">
+          Saved — the customer sees it now.
+          {mailNote && <span className="mt-0.5 block text-subtle">{mailNote}</span>}
+        </p>
+      )}
     </li>
   );
 }
@@ -622,6 +712,8 @@ function NewBookingForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
   const products = useProductList();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [source, setSource] = useState("");
   const [note, setNote] = useState("");
   const [lines, setLines] = useState([{ productId: products[0]?.id ?? "", qty: 1 }]);
   const [saving, setSaving] = useState(false);
@@ -652,6 +744,8 @@ function NewBookingForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
           items: lines
             .filter((l) => l.productId)
             .map((l) => ({ productId: l.productId, qty: l.qty })),
+          email: email.trim() || undefined,
+          source: source.trim() || undefined,
           note: note.trim() || undefined,
         },
       });
@@ -694,6 +788,32 @@ function NewBookingForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             type="tel"
+            className="mt-1 h-11 w-full rounded-md border border-line bg-bg px-3 outline-none focus:border-accent"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+            Email (optional)
+          </span>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="lets us email status updates"
+            className="mt-1 h-11 w-full rounded-md border border-line bg-bg px-3 outline-none focus:border-accent"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+            Came from (optional)
+          </span>
+          <input
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            placeholder="Instagram DM, Google, referral"
             className="mt-1 h-11 w-full rounded-md border border-line bg-bg px-3 outline-none focus:border-accent"
           />
         </label>
@@ -808,30 +928,6 @@ function Stat({
   );
 }
 
-function StockBadge({ stock, edited }: { stock: number; edited: boolean }) {
-  const tone =
-    stock === 0
-      ? "border-danger/40 text-danger"
-      : stock <= 5
-        ? "border-accent/40 text-accent"
-        : "border-line text-muted";
-  return (
-    <span className="flex items-center gap-2">
-      <span
-        className={cn(
-          "rounded-full border px-3 py-1 text-[0.62rem] tracking-[0.14em] uppercase",
-          tone,
-        )}
-      >
-        {stock === 0 ? "Sold out" : `${stock} in stock`}
-      </span>
-      {edited && (
-        <span className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">edited</span>
-      )}
-    </span>
-  );
-}
-
 function Editor({
   product,
   onSave,
@@ -852,16 +948,11 @@ function Editor({
     story: product.story,
     details: product.details.join("\n"),
     metal: product.metal,
-    purity: product.purity,
-    weight: product.weight,
     stones: product.stones,
     size: product.size,
-    hallmark: product.hallmark,
-    certification: product.certification,
     care: product.care,
     warranty: product.warranty,
     shipping: product.shipping,
-    stock: String(product.stock),
     image: product.image,
     category: product.category,
     collection: product.collection,
@@ -876,15 +967,14 @@ function Editor({
         ["sku", "SKU"],
         ["price", "Price (INR)"],
         ["compareAt", "Compare-at price"],
-        ["stock", "Stock"],
         ["image", "Image path"],
+        ["category", "Category"],
+        ["collection", "Collection"],
+        ["wear", "Wear"],
+        ["occasion", "Occasion"],
         ["metal", "Metal"],
-        ["purity", "Purity"],
-        ["weight", "Weight"],
         ["stones", "Stones"],
         ["size", "Size"],
-        ["hallmark", "Hallmark"],
-        ["certification", "Certification"],
       ] as const,
     [],
   );
@@ -907,16 +997,11 @@ function Editor({
         .map((l) => l.trim())
         .filter(Boolean),
       metal: form.metal,
-      purity: form.purity,
-      weight: form.weight,
       stones: form.stones,
       size: form.size,
-      hallmark: form.hallmark,
-      certification: form.certification,
       care: form.care,
       warranty: form.warranty,
       shipping: form.shipping,
-      stock: Number(form.stock) || 0,
       image: form.image,
       category: form.category as Product["category"],
       collection: form.collection as Product["collection"],
@@ -1747,6 +1832,618 @@ function MailTail({ report }: { report: MailReport }) {
         Addresses are stored masked — first letter and domain only — and every line is dropped after
         90 days. This records what the mail service answered, not what was in the message.
       </p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Insights.
+ *
+ * Four questions an atelier of this size actually asks, in the order it asks
+ * them: what happened today, what has not sold, what should be at the bench,
+ * and where the bookings came from. Each one is a `select` over the booking
+ * rows, and where the answer needs a fact the database does not hold — how
+ * long a piece takes to make — the number is asked for rather than assumed.
+ * ------------------------------------------------------------------ */
+
+function InsightsDesk() {
+  const [tick, setTick] = useState(0);
+  const [velocity, setVelocity] = useState<Velocity[] | null>(null);
+  const [attribution, setAttribution] = useState<Attribution | null>(null);
+  const [plan, setPlan] = useState<{ settings: BenchSettings; rows: PlanRow[] } | null>(null);
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
+  // One panel's query failing must not blank the others: the briefing is still
+  // true even if the bench plan table has not been created yet, so each panel
+  // keeps its own complaint and only a total failure takes the desk down.
+  const [failed, setFailed] = useState<Record<string, string>>({});
+
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    let live = true;
+    Promise.allSettled([
+      adminVelocity(),
+      adminAttribution(),
+      adminBenchPlan(),
+      adminBriefing(),
+    ]).then(([v, a, p, b]) => {
+      if (!live) return;
+      const errs: Record<string, string> = {};
+      const why = (r: PromiseRejectedResult) =>
+        r.reason instanceof Error ? r.reason.message : "Could not read the booking rows.";
+      if (v.status === "fulfilled") setVelocity(v.value);
+      else errs.velocity = why(v);
+      if (a.status === "fulfilled") setAttribution(a.value);
+      else errs.attribution = why(a);
+      if (p.status === "fulfilled") setPlan(p.value);
+      else errs.plan = why(p);
+      if (b.status === "fulfilled") setBriefing(b.value);
+      else errs.briefing = why(b);
+      setFailed(errs);
+    });
+    return () => {
+      live = false;
+    };
+  }, [tick]);
+
+  // Nothing has come back and nothing has complained: the desk is still reading.
+  if (!velocity && !attribution && !plan && !briefing && Object.keys(failed).length === 0) {
+    return (
+      <div className="-mt-6 rounded-xl border border-dashed border-line px-6 py-14 text-center text-sm text-muted">
+        Reading bookings…
+      </div>
+    );
+  }
+
+  const sold = (velocity ?? []).filter((v) => !v.neverSold);
+  const never = (velocity ?? []).filter((v) => v.neverSold);
+  const stale = sold.filter((s) => (s.daysSinceSold ?? 0) > 90);
+  const loading = (label: string) => (
+    <div className="rounded-xl border border-dashed border-line px-6 py-10 text-center text-sm text-muted">
+      Reading {label}…
+    </div>
+  );
+
+  return (
+    <div className="-mt-6 space-y-6">
+      {briefing ? (
+        <BriefingCard briefing={briefing} onReload={reload} />
+      ) : failed.briefing ? (
+        <PanelState message={failed.briefing} onRetry={reload} />
+      ) : (
+        loading("the briefing")
+      )}
+      <AskNumbers />
+
+      {velocity ? (
+        <Panel
+          title="Designs that have not sold"
+          note={`${never.length} of ${velocity.length} have never had a booking; ${stale.length} booked once and then nothing for three months.`}
+        >
+          <p className="-mt-2 text-xs leading-relaxed text-subtle">
+            "Never" means no non-cancelled booking on this site. A piece sold purely inside the
+            WhatsApp chat, with nothing recorded here, cannot show up — that is the limit of this
+            list, not of the bench.
+          </p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[...never, ...stale].slice(0, 12).map((v) => (
+              <li
+                key={v.sku}
+                className="flex gap-3 rounded-lg border border-line bg-paper/50 p-3"
+              >
+                <img
+                  src={v.image}
+                  alt=""
+                  className="h-14 w-14 shrink-0 rounded-md object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{v.name}</p>
+                  <p className="mt-0.5 truncate text-[0.66rem] tracking-[0.12em] text-subtle uppercase">
+                    {v.sku}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {v.neverSold
+                      ? "No booking recorded"
+                      : `Last booked ${v.daysSinceSold} days ago`}{" "}
+                    · {formatInr(v.price)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : failed.velocity ? (
+        <PanelState message={failed.velocity} onRetry={reload} />
+      ) : (
+        loading("the designs")
+      )}
+
+      {plan ? (
+        <BenchPlanCard initial={plan} />
+      ) : failed.plan ? (
+        <PanelState message={failed.plan} onRetry={reload} />
+      ) : (
+        loading("the bench plan")
+      )}
+
+      {attribution ? (
+        <Panel
+          title="Where bookings came from"
+          note="Rupees that are not cancelled, grouped by how the booking reached us."
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead>
+                <tr className="border-b border-line text-left text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+                  <th className="py-2 pr-3 font-medium">Kind</th>
+                  <th className="py-2 pr-3 font-medium">As recorded</th>
+                  <th className="py-2 pr-3 text-right font-medium">Bookings</th>
+                  <th className="py-2 pr-3 text-right font-medium">Rupees</th>
+                  <th className="py-2 text-right font-medium">Per booking</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attribution.rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted">
+                      Nothing to attribute yet.
+                    </td>
+                  </tr>
+                ) : (
+                  attribution.rows.map((r) => (
+                    <tr key={`${r.kind}-${r.key}`} className="border-b border-line/70">
+                      <td className="py-2 pr-3 text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+                        {r.kind}
+                      </td>
+                      <td className="py-2 pr-3">{r.key}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{r.bookings}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{formatInr(r.value)}</td>
+                      <td className="py-2 text-right tabular-nums">{formatInr(r.perBooking)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-subtle">
+            {attribution.unrecorded} bookings predate the site recording a link tag, and
+            {" "}
+            {attribution.firstTaggedAt
+              ? `tagged bookings exist only from ${new Date(attribution.firstTaggedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} onwards.`
+              : "no booking has arrived through a tagged link yet."}{" "}
+            To measure a campaign, share the page with{" "}
+            <code className="rounded bg-paper px-1.5 py-0.5 text-[0.7rem]">
+              ?utm_source=instagram&amp;utm_campaign=name
+            </code>{" "}
+            on the end — the tags are stored with the booking, nothing is installed for it.
+          </p>
+        </Panel>
+      ) : failed.attribution ? (
+        <PanelState message={failed.attribution} onRetry={reload} />
+      ) : (
+        loading("where bookings came from")
+      )}
+    </div>
+  );
+}
+
+/**
+ * The morning screen: six counted lines and the bookings that have been sitting.
+ * The mail button sends exactly this, on press — there is no scheduler in the
+ * deployment, and a silent cron failure would look identical to a quiet day.
+ */
+function BriefingCard({ briefing, onReload }: { briefing: Briefing; onReload: () => void }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [note, setNote] = useState("");
+
+  async function mail() {
+    setState("sending");
+    try {
+      const r = await sendBriefingMail();
+      setState(r.ok ? "sent" : "error");
+      setNote(r.ok ? `Sent to ${r.to}` : (r.error ?? "The mail service refused it."));
+    } catch (err) {
+      setState("error");
+      setNote(err instanceof Error ? err.message : "Could not send.");
+    }
+  }
+
+  return (
+    <Panel
+      title={`Today — ${briefing.day}`}
+      note="Counted from the booking rows as they stand at this moment."
+    >
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {briefing.lines.map((l) => (
+          <li
+            key={l.label}
+            className={cn(
+              "rounded-lg border px-4 py-3",
+              l.flag ? "border-accent/50 bg-accent/5" : "border-line bg-paper/50",
+            )}
+          >
+            <p className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">{l.label}</p>
+            <p className="mt-1 text-sm tabular-nums">{l.value}</p>
+          </li>
+        ))}
+      </ul>
+
+      {briefing.attention.length > 0 && (
+        <div className="mt-4 rounded-lg border border-line bg-paper/40 px-4 py-3">
+          <p className="text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+            Waiting on the desk
+          </p>
+          <ul className="mt-2 space-y-1">
+            {briefing.attention.map((a) => (
+              <li key={a.ref} className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                <span className="font-display tracking-[0.08em]">{a.ref}</span>
+                <span className="text-muted">{STATUS_LABEL[a.status as BookingStatus] ?? a.status}</span>
+                <span className="text-subtle">· {a.days} days since anything changed</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void mail()}
+          disabled={state === "sending"}
+          className="flex h-10 items-center gap-2 rounded-full border border-line px-4 text-[0.62rem] tracking-[0.14em] uppercase transition hover:border-fg disabled:opacity-60"
+        >
+          <Send className="h-3.5 w-3.5" />
+          {state === "sending" ? "Sending…" : "Mail me this"}
+        </button>
+        <button
+          type="button"
+          onClick={onReload}
+          className="flex h-10 items-center gap-2 rounded-full border border-line px-4 text-[0.62rem] tracking-[0.14em] text-muted uppercase transition hover:border-fg hover:text-fg"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Recount
+        </button>
+        {note && (
+          <p
+            role="status"
+            className={cn("text-xs", state === "error" ? "text-danger" : "text-muted")}
+          >
+            {note}
+          </p>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+const PRESET_QUESTIONS = [
+  "Why did sales drop this month?",
+  "Which designs should I promote?",
+  "Who is likely to order again?",
+  "Where did this month's bookings come from?",
+  "What should the bench have ready?",
+];
+
+/**
+ * Ask the numbers. The counted sentences are the answer; when a language model
+ * is configured it is given only those sentences to re-voice, and any digit it
+ * produces that was not in them throws the rephrase away.
+ */
+function AskNumbers() {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<NumbersAnswer | null>(null);
+  const [state, setState] = useState<"idle" | "asking" | "error">("idle");
+  const [error, setError] = useState("");
+
+  async function ask(text: string) {
+    const q = text.trim();
+    if (q.length < 3) return;
+    setState("asking");
+    setError("");
+    try {
+      setAnswer(await askTheNumbers({ data: { question: q } }));
+      setState("idle");
+    } catch (err) {
+      setAnswer(null);
+      setState("error");
+      setError(err instanceof Error ? err.message : "Could not read the numbers.");
+    }
+  }
+
+  return (
+    <Panel
+      title="Ask the numbers"
+      note="It can only say what the booking rows show — the sentences under the answer are the ones it was given."
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void ask(question);
+        }}
+        className="flex flex-wrap gap-3"
+      >
+        <label className="relative min-w-56 flex-1">
+          <Sparkles className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Why did sales drop this month?"
+            className="h-12 w-full rounded-md border border-line bg-surface pl-11 pr-4 text-sm outline-none focus:border-accent"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={state === "asking"}
+          className="h-12 rounded-md bg-fg px-6 text-[0.68rem] tracking-[0.16em] text-bg uppercase disabled:opacity-60"
+        >
+          {state === "asking" ? "Reading…" : "Ask"}
+        </button>
+      </form>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {PRESET_QUESTIONS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => {
+              setQuestion(p);
+              void ask(p);
+            }}
+            className="rounded-full border border-line bg-paper/50 px-3 py-1.5 text-[0.62rem] tracking-[0.1em] text-muted uppercase transition hover:border-accent hover:text-fg"
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {state === "error" && <p className="mt-4 text-sm text-danger">{error}</p>}
+
+      {answer && (
+        <div className="mt-5 rounded-lg border border-line bg-paper/40 px-4 py-4">
+          <p className="text-sm leading-relaxed">{answer.answer}</p>
+          <p className="mt-3 text-[0.62rem] tracking-[0.14em] text-subtle uppercase">
+            Counted from the rows
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {answer.facts.map((f) => (
+              <li key={f} className="text-xs leading-relaxed text-muted">
+                {f}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[0.7rem] text-subtle">
+            {answer.voiced
+              ? "Wording re-phrased by the model from the sentences above; no figure was added."
+              : "Answered from the counted sentences directly — no language model involved."}
+          </p>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * Demand measured here, lead time typed in by whoever runs the bench. With no
+ * lead time on file the card declines to suggest a quantity, because a made-up
+ * one is how the old stock numbers got here.
+ */
+function BenchPlanCard({
+  initial,
+}: {
+  initial: { settings: BenchSettings; rows: PlanRow[] };
+}) {
+  const [plan, setPlan] = useState(initial);
+  const [lead, setLead] = useState(String(initial.settings.leadDays || ""));
+  const [review, setReview] = useState(String(initial.settings.reviewDays || ""));
+  const [state, setState] = useState<"idle" | "saving" | "error">("idle");
+  const [note, setNote] = useState("");
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setState("saving");
+    setNote("");
+    try {
+      const saved = await saveBenchSettings({
+        data: { leadDays: Number(lead) || 0, reviewDays: Number(review) || 0 },
+      });
+      setPlan((p) => ({
+        settings: saved,
+        rows: p.rows.map((r) => ({
+          ...r,
+          horizonDays: saved.leadDays + saved.reviewDays,
+          suggested:
+            saved.leadDays + saved.reviewDays > 0
+              ? Math.ceil(
+                  (r.perDay > 0 ? r.perDay : r.perDay90) * (saved.leadDays + saved.reviewDays),
+                )
+              : 0,
+        })),
+      }));
+      setState("idle");
+      setNote("Saved on the server — this is shared by every device, not just this browser.");
+    } catch (err) {
+      setState("error");
+      setNote(err instanceof Error ? err.message : "Could not save.");
+    }
+  }
+
+  const horizon = plan.settings.leadDays + plan.settings.reviewDays;
+
+  return (
+    <Panel
+      title="What to have at the bench"
+      note="Booked units per day, measured over 30 days, or over 90 for the designs too quiet to read on 30."
+    >
+      <form onSubmit={save} className="flex flex-wrap items-end gap-3">
+        <label className="block text-sm">
+          <span className="text-muted">Days to make one piece</span>
+          <input
+            type="number"
+            min={0}
+            max={180}
+            value={lead}
+            onChange={(e) => setLead(e.target.value)}
+            placeholder="e.g. 12"
+            className="mt-1 h-11 w-40 rounded-md border border-line bg-surface px-3 tabular-nums"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="text-muted">Days between looks at this plan</span>
+          <input
+            type="number"
+            min={0}
+            max={180}
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            placeholder="e.g. 7"
+            className="mt-1 h-11 w-40 rounded-md border border-line bg-surface px-3 tabular-nums"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={state === "saving"}
+          className="h-11 rounded-md bg-fg px-5 text-[0.66rem] tracking-[0.16em] text-bg uppercase disabled:opacity-60"
+        >
+          {state === "saving" ? "Saving…" : "Save"}
+        </button>
+        {note && (
+          <p
+            role="status"
+            className={cn("text-xs", state === "error" ? "text-danger" : "text-muted")}
+          >
+            {note}
+          </p>
+        )}
+      </form>
+
+      {horizon <= 0 ? (
+        <p className="mt-4 rounded-lg border border-dashed border-line px-4 py-6 text-sm leading-relaxed text-muted">
+          Enter how long the bench needs and this will show how many pieces that rate says to have
+          ready. Until then it shows only the measured demand below, because a suggested quantity
+          built on a lead time we made up would be the same kind of number this dashboard just
+          stopped showing.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {plan.rows.map((r) => (
+            <li
+              key={r.sku}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border border-line bg-paper/40 px-4 py-3"
+            >
+              <span className="min-w-0 flex-1 truncate text-sm">{r.name}</span>
+              <span className="text-[0.66rem] tracking-[0.12em] text-subtle uppercase tabular-nums">
+                {r.perDay > 0 ? `${r.perDay} a day (30d)` : `${r.perDay90} a day (90d)`}
+              </span>
+              <span className="text-sm tabular-nums">
+                {r.suggested === 0
+                  ? "nothing extra"
+                  : `make ${r.suggested} for ${r.horizonDays} days`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-xs leading-relaxed text-subtle">
+        The horizon is lead time plus the review gap, so the suggestion covers the pieces expected
+        to be asked for before the next look at this page. It is a count of bookings, not of what
+        exists — this site keeps no stock figures.
+      </p>
+    </Panel>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * People.
+ *
+ * The account list, and next to it the one judgement the rows support: who has
+ * ordered more than once, and what in their own category they have not taken
+ * yet. "Likely to purchase again" is the rule that produced the row, spelled
+ * out — not a score.
+ * ------------------------------------------------------------------ */
+
+function PeopleDesk() {
+  const [data, setData] = useState<CustomerTrends | null>(null);
+  const [error, setError] = useState("");
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    void adminCustomers()
+      .then((r) => live && (setData(r), setError("")))
+      .catch((err: unknown) => {
+        if (!live) return;
+        setData(null);
+        setError(err instanceof Error ? err.message : "Could not read the customer rows.");
+      });
+    return () => {
+      live = false;
+    };
+  }, [tick]);
+
+  return (
+    <div className="-mt-6 space-y-6">
+      {error ? (
+        <PanelState message={error} onRetry={() => setTick((t) => t + 1)} />
+      ) : !data ? (
+        <div className="rounded-xl border border-dashed border-line px-6 py-14 text-center text-sm text-muted">
+          Reading bookings…
+        </div>
+      ) : (
+        <Panel
+          title="Who is likely to order again"
+          note={`${data.totals.repeat} of ${data.totals.customers} addresses with a booking have ordered more than once; ${data.totals.browsers} accounts have signed up without booking.`}
+        >
+          <p className="-mt-2 text-xs leading-relaxed text-subtle">
+            A customer is on this list because they booked twice or more, or booked once and the
+            shop has a design in the same category they have not taken. That is the whole rule —
+            with a few dozen orders there is nothing here for a model to have learned from, so no
+            score is pretended at.
+          </p>
+          {data.rows.length === 0 ? (
+            <p className="mt-4 text-sm text-muted">
+              No booking on file carries an email address yet, so there is nobody to list.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {data.rows.map((c) => (
+                <li
+                  key={c.email}
+                  className="rounded-lg border border-line bg-paper/40 px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="min-w-0 truncate text-sm">
+                      {c.name || initials(c.email)}{" "}
+                      <span className="text-xs text-subtle">{c.email}</span>
+                    </p>
+                    <p className="text-xs tabular-nums text-muted">
+                      {c.bookings} {c.bookings === 1 ? "booking" : "bookings"} ·{" "}
+                      {formatInr(c.value)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{c.why}</p>
+                  {c.suggestions.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-[0.6rem] tracking-[0.14em] text-subtle uppercase">
+                        {c.topCategory}, not yet taken
+                      </span>
+                      {c.suggestions.map((s) => (
+                        <span
+                          key={s.sku}
+                          className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[0.66rem]"
+                        >
+                          <img src={s.image} alt="" className="h-5 w-5 rounded-full object-cover" />
+                          {s.name} · {formatInr(s.price)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      )}
+
+      <UsersPanel />
     </div>
   );
 }

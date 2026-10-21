@@ -362,12 +362,14 @@ function bestFact(text: string): Fact | null {
   return best?.fact ?? null;
 }
 
+/**
+ * Newest first, then cheapest. There is no availability term here on purpose:
+ * the site does not count pieces, so "what is in hand" is not a signal Grace
+ * can honestly sort on. `latest` and price are the two real keys.
+ */
 function rank(list: Product[]) {
   return [...list].sort(
-    (a, b) =>
-      Number(b.stock > 0) - Number(a.stock > 0) ||
-      Number(Boolean(b.latest)) - Number(Boolean(a.latest)) ||
-      a.price - b.price,
+    (a, b) => Number(Boolean(b.latest)) - Number(Boolean(a.latest)) || a.price - b.price,
   );
 }
 
@@ -436,12 +438,19 @@ function productLine(p: Product) {
   return `**${p.name}** — ${formatInr(p.price)} · ${p.description}`;
 }
 
+/**
+ * The one-line spec Grace reads out for a piece. The last fragment used to
+ * branch on stock ("12 at the bench" or "made to order") — neither is a fact
+ * this site knows, so it now says only the true thing: the piece is strung by
+ * hand and its availability is settled with the customer on WhatsApp before
+ * payment, never by a counter on the page.
+ */
 function detail(p: Product) {
   const bits = [
     p.size,
     p.stones,
     p.metal,
-    p.stock > 0 ? `${p.stock} at the bench` : `made to order, ${SITE.madeToOrder}`,
+    "strung by hand — availability confirmed on WhatsApp before payment",
   ];
   return bits.filter(Boolean).join(" · ");
 }
@@ -651,7 +660,7 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
   }
   if (CAPABILITY.test(message) && !anyFacet(asked)) {
     return reply(
-      `I answer from two places: the live catalogue — ${facts.count} pieces, ${formatInr(facts.min)} to ${formatInr(facts.max)}, ${facts.inStockCount} ready to ship — and what this site actually promises about ordering, payment, shipping, sizing and returns. Ask me to narrow by occasion or budget, ask what a piece is made of, or ask how a claim works.`,
+      `I answer from two places: the live catalogue — ${facts.count} pieces, ${formatInr(facts.min)} to ${formatInr(facts.max)} — and what this site actually promises about ordering, payment, shipping, sizing and returns. Ask me to narrow by occasion or budget, ask what a piece is made of, or ask how a claim works.`,
       rank(catalog).slice(0, 2).map((p) => p.id),
       [{ label: "How ordering works", to: "/terms" }],
     );
@@ -725,7 +734,7 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
     if (pair.length === 2) {
       const [a, b] = pair;
       const line = (p: Product) =>
-        `**${p.name}** — ${formatInr(p.price)}, ${p.stones}, ${p.size}, ${p.wear} wear, ${p.stock > 0 ? `${p.stock} in hand` : `made to order, ${SITE.madeToOrder}`}`;
+        `**${p.name}** — ${formatInr(p.price)}, ${p.stones}, ${p.size}, ${p.wear} wear, strung by hand`;
       const verdict =
         a.price === b.price
           ? "Same money, so pick on the stone and the length."
@@ -741,14 +750,13 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
   if (piece) {
     const wanted = asksAboutPiece;
     const link = { label: `Open ${piece.name}`, to: `/product/${piece.id}` };
-    const availability =
-      piece.stock > 0
-        ? `${piece.stock} at the bench right now`
-        : `made to order — ${SITE.madeToOrder} once we confirm`;
 
+    // "is it available?" is a fair question and we keep answering it — but the
+    // site counts nothing, so the honest reply names the piece, says no count
+    // exists, and points to the WhatsApp confirmation that actually settles it.
     if (about.stock) {
       return reply(
-        `${piece.name} (${piece.sku}) — ${availability}. ${formatInr(piece.price)}, ${piece.size}. Stock moves through the day, so we confirm in writing before any payment.`,
+        `${piece.name} (${piece.sku}) — this site does not track how many of a piece exist, so I cannot say whether it is in hand or sold out. Everything is handmade, and we confirm availability with you on WhatsApp before any payment; a piece that has to be strung takes ${SITE.madeToOrder}. ${formatInr(piece.price)}, ${piece.size}.`,
         [piece.id],
         [link],
       );
@@ -756,7 +764,7 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
     if (about.price) {
       const other = facts.categories.find((c) => c.key === piece.category);
       return reply(
-        `${piece.name} is ${formatInr(piece.price)}${piece.compareAt ? `, down from ${formatInr(piece.compareAt)}` : ""} — ${piece.stock > 0 ? "ready to ship" : `made to order, ${SITE.madeToOrder}`} — plus fixed shipping. ${other ? `That sits in the middle of our ${other.label} range, ${formatInr(other.min)} to ${formatInr(other.max)}.` : ""}`,
+        `${piece.name} is ${formatInr(piece.price)}${piece.compareAt ? `, down from ${formatInr(piece.compareAt)}` : ""} plus fixed shipping. ${other ? `That sits in the middle of our ${other.label} range, ${formatInr(other.min)} to ${formatInr(other.max)}.` : ""}`,
         [piece.id],
         [link],
       );
@@ -772,8 +780,15 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
       return reply(`${piece.name}: ${piece.care}`, [piece.id], [link]);
     }
     if (about.material) {
+      // Built from `metal`, `stones` and `size` only — the old sentence quoted a
+      // purity and a weight the shop never measured. The disclaimer stays, in
+      // those exact protections: gold polish / fashion jewellery, not solid
+      // gold, not hallmarked. The code of conduct forbids calling anything
+      // hallmarked or certified unless it is, so that line is load-bearing.
+      const stones =
+        piece.stones && !/^none$/i.test(piece.stones) ? ` with ${piece.stones.toLowerCase()}` : "";
       return reply(
-        `${piece.name} is ${piece.metal.toLowerCase()} with ${piece.stones.toLowerCase()} — ${piece.purity.toLowerCase()}, so gold polish rather than solid gold, and not hallmarked. ${piece.weight.toLowerCase()}, ${piece.size}.`,
+        `${piece.name} is ${piece.metal.toLowerCase()}${stones} — handmade fashion jewellery in gold polish or gold plate, not solid gold and not hallmarked. ${piece.size}.`,
         [piece.id],
         [link],
       );
@@ -799,7 +814,7 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
     !anyFacet({ ...asked, budget: null })
   ) {
     return reply(
-      `${priceSummary(facts)} The cheapest single piece is ${facts.cheapest.name} at ${formatInr(facts.cheapest.price)} and the grandest is ${facts.dearest.name} at ${formatInr(facts.dearest.price)}. ${facts.madeToOrder.length} of them are made to order rather than in hand.`,
+      `${priceSummary(facts)} The cheapest single piece is ${facts.cheapest.name} at ${formatInr(facts.cheapest.price)} and the grandest is ${facts.dearest.name} at ${formatInr(facts.dearest.price)}.`,
       [facts.cheapest.id, facts.dearest.id],
       [{ label: "Browse by category", to: "/jewellery" }],
     );
@@ -819,9 +834,10 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
       : [];
     const list = (inLine.length ? inLine : facts.latest).slice(0, 3);
     const link = categoryLink(asked);
-    const tail = facts.madeToOrder.length
-      ? `${facts.madeToOrder.length} more lines are being strung now — ${SITE.madeToOrder} for anything not in hand.`
-      : `Every one of these is in hand at the bench, so none of them are a wait.`;
+    // The old tail counted made-to-order lines and promised the rest were in
+    // hand. Neither is known, so it says only what is true about new pieces.
+    const tail =
+      "These came off the bench most recently. Nothing here is counted, so we confirm each one is still available on WhatsApp before you pay.";
     return reply(
       `Fresh off the bench:\n\n${list.map((p) => `• ${productLine(p)}`).join("\n")}\n\n${tail}`,
       list.map((p) => p.id),
@@ -841,15 +857,19 @@ export function answerAboutShop(ask: Ask, catalog: Product[]): AiReply {
     if (phrasedAsPolicy || !wantsToShop) return reply(fact.answer, [], fact.links ?? []);
   }
 
-  // --- what is running low --------------------------------------------------
+  // --- "what is running low / sold out?" ------------------------------------
+  // The question is legitimate and stays detected. The old block filtered on
+  // `stock <= 4` and named pieces as disappearing — both invented, since the
+  // site counts nothing. The true answer is that nothing is marked as running
+  // out, and a piece they actually want is answered piece by piece on WhatsApp.
   if (/\b(sold out|low stock|running low|left|only a few)\b/i.test(message) && !anyFacet(asked)) {
-    const low = rank(catalog)
-      .filter((p) => p.stock <= 4)
-      .slice(0, 3);
     return reply(
-      `${facts.madeToOrder.length ? `${facts.madeToOrder.length} pieces are made to order right now` : "Nothing is fully sold out"}. These are the ones to decide on early:\n\n${low.map((p) => `• ${productLine(p)} — ${p.stock > 0 ? `${p.stock} left` : "made to order"}`).join("\n")}`,
-      low.map((p) => p.id),
-      [{ label: "Browse everything", to: "/jewellery" }],
+      "Nothing on this site is counted, so no piece is ever marked sold out, low or about to run out — those numbers do not exist here. Everything is handmade, and we confirm whether a piece is available with you on WhatsApp before you pay. Name the piece you have your eye on and I will pull it up.",
+      [],
+      [
+        { label: "Browse everything", to: "/jewellery" },
+        { label: "Ask about a piece", to: "/community" },
+      ],
     );
   }
 

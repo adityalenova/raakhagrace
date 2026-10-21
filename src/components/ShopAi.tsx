@@ -187,7 +187,7 @@ export function ShopAi() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.83rem]">{p.name}</p>
                       <p className="text-xs tabular-nums text-ink-muted">
-                        {formatInr(p.price)} · {p.stock > 0 ? `${p.stock} at the bench` : "made to order"}
+                        {formatInr(p.price)} · handmade at the bench
                       </p>
                     </div>
                     <button

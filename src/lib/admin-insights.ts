@@ -27,7 +27,7 @@ import { PRODUCTS } from "./products";
 const OPEN_STATUSES = ["new", "confirmed", "packed", "shipped"];
 
 export type Analytics = {
-  catalogue: { pieces: number; soldOut: number; value: number };
+  catalogue: { pieces: number; booked: number };
   people: {
     signups: number;
     verified: number;
@@ -183,13 +183,16 @@ export const adminAnalytics = createServerFn({ method: "GET" }).handler(async ()
       ),
     ]);
 
-  const catalogueValue = PRODUCTS.reduce((sum, p) => sum + p.price * p.stock, 0);
+  // No stock maths here, deliberately. The bench does not count pieces, so a
+  // "stock value" and a "sold out" figure could only ever be invented. What is
+  // known is which designs have actually been booked, from the item lines on the
+  // orders themselves.
+  const bookedNames = new Set(pieces.map((p) => p.name));
 
   return {
     catalogue: {
       pieces: PRODUCTS.length,
-      soldOut: PRODUCTS.filter((p) => p.stock === 0).length,
-      value: n(catalogueValue),
+      booked: bookedNames.size,
     },
     people: {
       signups: n(people[0]?.signups),

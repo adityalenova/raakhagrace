@@ -18,7 +18,7 @@ const env = (key: string): string | undefined => {
   return value ? value : undefined;
 };
 
-export type SendResult = { ok: true; id: string } | { ok: false; error: string };
+export type SendResult = { ok: true; id: string } | { ok: false; error: string; skipped?: boolean };
 
 /** From-address, e.g. `Raakha Grace <hello@raakhagrace.com>`. */
 export function resendFrom(): string | undefined {
@@ -68,11 +68,14 @@ export async function sendEmail(input: {
   const from = resendFrom();
   if (!apiKey) {
     await recordMail({ kind, to: input.to, status: "skipped", detail: "RESEND_API_KEY is not set" });
-    return { ok: false, error: "RESEND_API_KEY is not set" };
+    // `skipped` says the mail service was never asked — a desk that reports
+    // "the mail service refused it" for a message that never left the server
+    // sends the owner looking in the wrong place.
+    return { ok: false, skipped: true, error: "RESEND_API_KEY is not set" };
   }
   if (!from) {
     await recordMail({ kind, to: input.to, status: "skipped", detail: "RESEND_FROM is not set" });
-    return { ok: false, error: "RESEND_FROM is not set" };
+    return { ok: false, skipped: true, error: "RESEND_FROM is not set" };
   }
 
   const res = await fetch(RESEND_URL, {

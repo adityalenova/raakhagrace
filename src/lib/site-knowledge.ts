@@ -568,6 +568,12 @@ export const LOOKING_WORDS = [
 /**
  * Numbers Grace is allowed to quote about the shop. Computed from the live
  * catalogue so the answer cannot drift from what is actually listed.
+ *
+ * There are deliberately no availability figures here. The site never counts
+ * how many of a piece exist — the bench settles that with the customer on
+ * WhatsApp before payment — so an in-hand count, a `ready to ship` number or a
+ * made-to-order list would all be invented. Only what a listing actually states
+ * is computed. Counts were dropped on purpose; do not reintroduce them.
  */
 export type CatalogueFacts = ReturnType<typeof catalogueFacts>;
 
@@ -579,14 +585,11 @@ export function catalogueFacts(catalog: Product[]) {
     list.push(p);
     byCategory.set(p.category, list);
   }
-  const inStock = catalog.filter((p) => p.stock > 0);
   const latest = catalog.filter((p) => p.latest);
   return {
     count: catalog.length,
     min: Math.min(...prices),
     max: Math.max(...prices),
-    inStockCount: inStock.length,
-    madeToOrder: catalog.filter((p) => p.stock === 0),
     latest: latest.length ? latest : catalog.slice(0, 3),
     cheapest: [...catalog].sort((a, b) => a.price - b.price)[0],
     dearest: [...catalog].sort((a, b) => b.price - a.price)[0],
@@ -596,7 +599,6 @@ export function catalogueFacts(catalog: Product[]) {
       count: list.length,
       min: Math.min(...list.map((p) => p.price)),
       max: Math.max(...list.map((p) => p.price)),
-      inStock: list.filter((p) => p.stock > 0).length,
     })),
   };
 }
@@ -606,7 +608,9 @@ export function priceSummary(f: CatalogueFacts, category?: string | null) {
   if (category) {
     const c = f.categories.find((x) => x.key === category);
     if (c) {
-      return `${c.label}: ${c.count} ${c.count === 1 ? "piece" : "pieces"} at the bench, ${formatInr(c.min)} to ${formatInr(c.max)}, ${c.inStock} ready to ship.`;
+      // No `ready to ship` clause: the count behind it was never tracked, so
+      // the honest price line is only how many are listed and the price range.
+      return `${c.label}: ${c.count} ${c.count === 1 ? "piece" : "pieces"} listed, ${formatInr(c.min)} to ${formatInr(c.max)}.`;
     }
   }
   const lines = f.categories
@@ -625,7 +629,9 @@ export function siteBrief(catalog: Product[], facts: Fact[] = FACTS) {
   const rows = catalog
     .map(
       (p) =>
-        `${p.id} | ${p.name} | ${p.sku} | ₹${p.price} | ${p.category} | ${p.collection} | ${p.wear} | ${p.occasion ?? "any"} | ${p.stones} | ${p.metal} | ${p.size} | stock ${p.stock}`,
+        // No `stock` column — the site does not count pieces, so handing the
+        // model a number here would only teach it to invent availability.
+        `${p.id} | ${p.name} | ${p.sku} | ₹${p.price} | ${p.category} | ${p.collection} | ${p.wear} | ${p.occasion ?? "any"} | ${p.stones} | ${p.metal} | ${p.size}`,
     )
     .join("\n");
   const policy = facts
@@ -634,7 +640,8 @@ export function siteBrief(catalog: Product[], facts: Fact[] = FACTS) {
   return `RAAKHA GRACE — an independent handmade jewellery atelier in Hyderabad, India.
 Orders close on WhatsApp at ${SITE.whatsapp}. Prices in Indian rupees.
 ${priceSummary(f)}
-Made-to-order pieces take ${SITE.madeToOrder}; shipping across India is ${SITE.deliveryWindow}.
+Made-to-order lead time is ${SITE.madeToOrder}; shipping across India is ${SITE.deliveryWindow}.
+The site does not count stock — never say a piece is in hand, low or sold out; confirm availability on WhatsApp before payment.
 
 SITE PAGES: /jewellery /ornaments /gifts /specials /daily-wear /about /blog /community /cart /checkout /dashboard /terms /privacy /data-protection /cookie-information /code-of-conduct /reach-information /faq /affiliations
 
