@@ -42,7 +42,13 @@ import { formatInr } from "@/lib/utils";
 import { useWishlist } from "@/lib/wishlist-store";
 import type { Product } from "@/lib/products";
 
-export const Route = createFileRoute("/dashboard")({ component: Page });
+export const Route = createFileRoute("/dashboard")({
+  // Asked on the server, from the session, before the first paint — because the
+  // answer decides whether this page shows the verification gate at all, and a
+  // gate that appears for one frame and then disappears is worse than no gate.
+  loader: () => adminStatus(),
+  component: Page,
+});
 
 /**
  * Shape of `adminStatus()` — derived rather than imported from
@@ -72,10 +78,10 @@ function Page() {
   const get = useCatalog((s) => s.get);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   /**
-   * Server's verdict on this session for `/admin`. Asked once, after sign-in,
-   * because the owner's card below should not flash in and out.
+   * Server's verdict on this session for `/admin`, from the route loader: it
+   * both decides the gate below and mounts the owner's card.
    */
-  const [admin, setAdmin] = useState<AdminStatus | null>(null);
+  const admin: AdminStatus = Route.useLoaderData();
 
   const reloadBookings = useCallback(() => {
     void listMyBookings()
@@ -88,15 +94,6 @@ function Page() {
     void mergeGuestToServer();
     reloadBookings();
   }, [user, mergeGuestToServer, reloadBookings]);
-
-  useEffect(() => {
-    if (!user) return;
-    // `adminStatusForRequest` never throws, so a failure here means the request
-    // itself did not land — in which case the owner's card stays off the page.
-    void adminStatus()
-      .then(setAdmin)
-      .catch(() => setAdmin(null));
-  }, [user]);
 
   if (isPending) {
     return (
@@ -153,8 +150,18 @@ function Page() {
   const spend = (bookings ?? [])
     .filter((o) => o.status !== "cancelled")
     .reduce((s, o) => s + o.total, 0);
+  /*
+   * The code step is for customers. The atelier's own address is on the admin
+   * allowlist, which is a stronger claim on the account than a confirmation
+   * mail: it already decides who may open `/admin`, it is set by hand in the
+   * deployment's environment, and no code can be mailed to it while the sender
+   * is still Resend's test address. So the owner signs in with email and
+   * password and goes straight through — the same way they did before the gate
+   * existed.
+   */
+  const isOwner = Boolean(admin.allowed);
   const needsVerification = Boolean(
-    user.primaryEmail && !user.isGuest && user.emailVerified === false,
+    !isOwner && user.primaryEmail && !user.isGuest && user.emailVerified === false,
   );
 
   // Stopped at the door rather than nudged inside: see `verify-gate.ts` for why
@@ -270,7 +277,7 @@ function Page() {
             which is what makes it safe to show the desk's address and the email
             that opens it on a page a customer can also be on.
           */}
-          {admin?.allowed && <OwnerDesk email={admin.email ?? user.primaryEmail ?? ""} />}
+          {isOwner && <OwnerDesk email={admin.email ?? user.primaryEmail ?? ""} />}
 
           <div className="mt-12 grid gap-10 lg:grid-cols-[1.55fr_1fr]">
             <div className="min-w-0 space-y-12">
@@ -605,18 +612,20 @@ function OwnerDesk({ email }: { email: string }) {
 
       <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2">
         <div>
-          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">
-            Admin address
-          </dt>
-          <dd className="mt-1.5 break-all text-sm">{url || "/admin"}</dd>
+          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">Sign in with</dt>
+          <dd className="mt-1.5 break-all text-sm">{email}</dd>
+          <dd className="mt-1 text-xs leading-relaxed text-ink-muted">
+            The address on the ADMIN_EMAILS allowlist, plus the password you set when you made that
+            account. There is no separate admin password — and no confirmation code either, so the
+            door opens on the password alone.
+          </dd>
         </div>
         <div>
-          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">
-            Signed in as
-          </dt>
-          <dd className="mt-1.5 break-all text-sm">{email}</dd>
-          <dd className="mt-1 text-xs text-ink-muted">
-            On the ADMIN_EMAILS allowlist — no separate password.
+          <dt className="text-[0.62rem] tracking-[0.16em] text-ink-muted uppercase">Admin desk</dt>
+          <dd className="mt-1.5 break-all text-sm">{url || "/admin"}</dd>
+          <dd className="mt-1 text-xs leading-relaxed text-ink-muted">
+            Reachable at that address from any signed-in browser. If the account for this email does
+            not exist yet, create it at {"/login"} with the same address first.
           </dd>
         </div>
         <div className="sm:col-span-2">
@@ -768,7 +777,9 @@ function VerifyBanner({ email }: { email: string }) {
       setState("awaiting");
       setSeconds(RESEND_COOLDOWN);
       setNote(
-        `A six-digit code is on its way to ${email}. It works once, for ${CODE_MINUTES} minutes.`,
+        `A six-digit code is on its way to ${email}. It works once, for ${CODE_MINUTES} minutes. ` +
+          "If it has not turned up in a minute, look in Spam or Junk first — a confirmation mail " +
+          "from a shop this new is the first thing a mail provider sets aside.",
       );
       return;
     }

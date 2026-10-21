@@ -43,6 +43,11 @@ const COLLECTS: { what: string; why: string; ifRefused: string }[] = [
     ifRefused: "Sign-in cannot work.",
   },
   {
+    what: "Mail delivery records: what was mailed to you, when, and whether the mail service accepted or refused it",
+    why: "So that “my confirmation code never arrived” still has an answer a week later, once the server's own logs have expired. The address is stored masked — first letter and domain — and no message body is kept.",
+    ifRefused: "There is nothing to decline; it is one line about a message you asked for.",
+  },
+  {
     what: "Cart and saved pieces, held in your browser",
     why: "So a reload does not empty your cart.",
     ifRefused: "The cart becomes a per-page list.",
@@ -291,6 +296,11 @@ function Page() {
           <li>
             <strong>Messages</strong> — WhatsApp history lives in the app you and we both use, not on
             this site. Anything we deliberately save against a booking is a note about the order.
+          </li>
+          <li>
+            <strong>Delivery records</strong> — the line about a mail we tried to send you is kept for
+            about ninety days and then dropped; it is a receipt from the mail service, not a copy of
+            the message, and it is erased with everything else the moment you ask.
           </li>
           <li>
             <strong>Browser storage</strong> — until you clear it; nothing about your cart is mirrored

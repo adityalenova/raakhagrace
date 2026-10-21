@@ -163,6 +163,7 @@ export async function sendVerificationMail(input: {
     to: input.to,
     subject: "Confirm your Raakha Grace account",
     html,
+    kind: "link",
   });
   if (!result.ok) console.error("[auth] verification mail failed:", result.error);
 }
@@ -186,6 +187,7 @@ export async function sendWelcomeMail(input: { to: string; name: string }): Prom
     to: input.to,
     subject: "Welcome to Raakha Grace",
     html,
+    kind: "welcome",
   });
   if (!result.ok) console.error("[auth] welcome mail failed:", result.error);
 }
@@ -236,6 +238,7 @@ export async function sendOtpMail(input: {
     to: input.to,
     subject: `${input.otp} is your Raakha Grace code`,
     html,
+    kind: "code",
   });
   if (!result.ok) console.error("[auth] otp mail failed:", result.error);
 }

@@ -70,11 +70,13 @@ export async function sendEnquiry(data: Enquiry): Promise<EnquiryResult> {
       to: inbox,
       subject: `Booking enquiry — ${data.customerName} (${inr(total)})`,
       html: enquiryHtml(rows),
+      kind: "enquiry",
     }),
     sendEmail({
       to: data.customerEmail,
       replyTo: inbox,
       subject: "We received your enquiry — Raakha Grace",
+      kind: "enquiry",
       html: enquiryHtml([
         { label: "Pieces", value: lines },
         { label: "Total", value: inr(total) },

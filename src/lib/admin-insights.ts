@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
+import type { MailLogEntry } from "./email/mail-log.server";
 import { PRODUCTS } from "./products";
 
 /**
@@ -349,6 +350,14 @@ export type MailReport = {
   testSender: boolean;
   /** Present only when the caller asked for a live probe. */
   probe?: { ok: boolean; to: string; error?: string };
+  /**
+   * The tail of `mail_log`: every code, welcome mail, link, enquiry and probe
+   * this deployment tried to send, newest first, with what Resend said. Empty on
+   * a store that has never mailed anything.
+   */
+  recent: MailLogEntry[];
+  /** True when reading that tail failed, so the panel can say so honestly. */
+  recentFailed: boolean;
 };
 
 /**
@@ -377,12 +386,14 @@ export const mailCheck = createServerFn({ method: "GET" })
       from,
       inbox,
       testSender: /@resend\.dev>?\s*$/i.test(from ?? ""),
+      recent: [],
+      recentFailed: false,
     };
 
     if (data.probe) {
       if (!inbox) {
         report.probe = { ok: false, to: "(no ORDER_NOTIFY_EMAIL set)" };
-        return report;
+        return withRecentMail(report);
       }
       const result = await sendEmail({
         to: inbox,
@@ -391,10 +402,30 @@ export const mailCheck = createServerFn({ method: "GET" })
           "<p>This is the atelier's own delivery probe. If it arrived, the API key and the " +
           "sender address both work; anything that still fails is a recipient problem, not a " +
           "code problem.</p>",
+        kind: "probe",
       });
       report.probe = result.ok
         ? { ok: true, to: inbox }
         : { ok: false, to: inbox, error: result.error };
     }
-    return report;
+    // Read last so the probe the caller may have just sent shows up in the tail.
+    return withRecentMail(report);
   });
+
+/**
+ * Attach the outbox tail. A failure here is reported rather than swallowed:
+ * the panel is the one place the owner comes to find out why mail did not
+ * arrive, and "the log table is missing" is a different answer from "nothing
+ * was ever sent" — the new table only exists after a deploy that ran
+ * migrations, so an older deployment legitimately has none.
+ */
+async function withRecentMail(report: MailReport): Promise<MailReport> {
+  try {
+    const { recentMail } = await import("@/lib/email/mail-log.server");
+    report.recent = await recentMail(25);
+  } catch (err) {
+    report.recentFailed = true;
+    console.error("[mail] could not read the outbox log:", err);
+  }
+  return report;
+}

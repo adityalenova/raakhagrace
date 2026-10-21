@@ -104,6 +104,12 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
     const pg = new PGlite({
+      // Explicit, or the built (nitro) bundle resolves PGLite's default to a
+      // `pglite.data` directory next to the server chunk and dies on the first
+      // request — `ENOENT … _libs/pglite.data`. Dev never hits it because Vite
+      // keeps PGLite's browser default. Memory is also the only option that is
+      // true on Vercel, where runtime filesystem writes are not allowed.
+      dataDir: "memory://",
       parsers: {
         [OID_INT8]: Number,
         [OID_DATE]: identity,
@@ -216,6 +222,15 @@ export function ensureDbReady(): Promise<void> {
 
 // Server-only eager start: kick PGLite bootstrap as soon as this module loads in
 // Node. Client bundles never hit this path (`getSql` throws in the browser).
+//
+// Log, never re-throw. This promise is fire-and-forget at module scope, so a
+// rejection here is an unhandled one and Node 24 exits the whole server — the
+// preview dies after the first request instead of answering it. `createPgliteSql`
+// clears the failed instance, so the next request retries and gets the error on
+// the page, where it is actually useful. (Seen here: a production build without
+// `DATABASE_URL` cannot boot PGLite at all, because the bundler inlines
+// `electric-sql__pglite` but never copies the `pglite.wasm` / `pglite.data`
+// siblings Emscripten loads at runtime.)
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
@@ -223,6 +238,5 @@ if (typeof window === "undefined" && dbSource === "pglite") {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
   });
 }

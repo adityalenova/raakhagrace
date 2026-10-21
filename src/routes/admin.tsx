@@ -1680,8 +1680,73 @@ function MailPanel() {
               </p>
             )}
           </div>
+
+          <MailTail report={report} />
         </div>
       )}
     </Panel>
+  );
+}
+
+/**
+ * The outbox: every message this deployment tried to send and what the mail
+ * service said. Ordered newest first, and the refusal text is Resend's own,
+ * which is the part that names the cause — an unverified sender, a bad key, a
+ * mailbox that does not exist.
+ */
+function MailTail({ report }: { report: MailReport }) {
+  const status = {
+    sent: { tone: "text-fg", icon: ShieldCheck, word: "Accepted" },
+    refused: { tone: "text-accent", icon: AlertTriangle, word: "Refused" },
+    skipped: { tone: "text-subtle", icon: Mail, word: "Not sent" },
+  } as const;
+
+  return (
+    <div className="border-t border-line pt-4">
+      <h3 className="text-[0.6rem] tracking-[0.16em] text-subtle uppercase">Recent mail</h3>
+      {report.recentFailed ? (
+        <p className="mt-2 text-sm text-accent">
+          The outbox log could not be read on this deployment. Runtime logs from the last half hour
+          are the next place to look.
+        </p>
+      ) : report.recent.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">
+          Nothing has been mailed since this log began. Every confirmation code, welcome mail and
+          enquiry copy the site sends from now on is listed here, with the reason if it failed.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {report.recent.map((m) => {
+            const s = status[m.status] ?? status.skipped;
+            const Icon = s.icon;
+            return (
+              <li key={m.id} className="flex items-start gap-3">
+                <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", s.tone)} aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-fg">
+                    <span className="capitalize">{m.kind}</span> · {m.recipient} ·{" "}
+                    <span className={s.tone}>{s.word}</span>
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-subtle">
+                    {new Date(m.createdAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                    {m.detail ? ` — ${m.detail}` : ""}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-subtle">
+        Addresses are stored masked — first letter and domain only — and every line is dropped after
+        90 days. This records what the mail service answered, not what was in the message.
+      </p>
+    </div>
   );
 }

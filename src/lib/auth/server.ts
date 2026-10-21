@@ -293,6 +293,7 @@ export const auth = betterAuth({
               subject: data.subject,
               // Resend renders both, so give it the plain body plus a link.
               html: `<p>${data.text.replace(/\n/g, "<br/>")}</p>`,
+              kind: "link",
             });
             if (!result.ok) console.error("[auth] Resend mail failed:", result.error);
           },
